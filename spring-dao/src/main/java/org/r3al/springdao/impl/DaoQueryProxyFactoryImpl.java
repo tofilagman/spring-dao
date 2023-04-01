@@ -6,10 +6,10 @@ import org.r3al.springdao.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.dao.DuplicateKeyException;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.lang.reflect.Method;
+import java.util.*;
 
 public class DaoQueryProxyFactoryImpl implements DaoQueryProxyFactory {
 
@@ -47,11 +47,16 @@ public class DaoQueryProxyFactoryImpl implements DaoQueryProxyFactory {
         }
     }
 
-    private static final Map<CacheKey, DaoQueryInfo> cache = new HashMap<>();
-
     @Override
     public Object create(Class<? extends DaoQuery> classe) {
         LOGGER.debug("creating an {} interface proxy", classe.getName());
+
+        Set<String> mths = new HashSet<>();
+        for (Method method : classe.getDeclaredMethods()) {
+            if (!mths.add(method.getName()))
+                throw new DuplicateKeyException(String.format("Duplicate method '%s' for class '%s', Aborted.", method.getName(), classe.getName()));
+        }
+
         ProxyFactory proxy = new ProxyFactory();
         proxy.setTarget(Mockito.mock(classe));
         proxy.setInterfaces(classe, DaoQuery.class);
