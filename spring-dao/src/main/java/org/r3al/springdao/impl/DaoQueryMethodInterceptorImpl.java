@@ -165,6 +165,7 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
 
             return processReturn(query.list());
         } finally {
+            entityManager.close();
             session.close();
         }
     }
