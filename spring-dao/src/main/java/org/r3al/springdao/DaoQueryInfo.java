@@ -2,10 +2,7 @@ package org.r3al.springdao;
 
 import jakarta.persistence.Entity;
 import org.aopalliance.intercept.MethodInvocation;
-import org.r3al.springdao.annotations.DaoQueryParam;
-import org.r3al.springdao.annotations.DaoQuerySql;
-import org.r3al.springdao.annotations.DaoQueryUseHibernateTypes;
-import org.r3al.springdao.annotations.DaoQueryUseJdbcTemplate;
+import org.r3al.springdao.annotations.*;
 import org.r3al.springdao.filters.DaoQueryCondition;
 import org.r3al.springdao.filters.DaoQueryFilter;
 import org.r3al.springdao.templates.HandleBarTemplate;
@@ -44,6 +41,9 @@ public class DaoQueryInfo implements Serializable, Cloneable {
     private String sqlCount;
     private String sqlReturn;
 
+    private Class<?> rowMapper;
+    private boolean useRowMapper;
+
     private DaoQueryInfo() {
     }
 
@@ -66,17 +66,22 @@ public class DaoQueryInfo implements Serializable, Cloneable {
             info.aliasToBean = info.returnType;
         }
 
+        info.useRowMapper = classe.isAnnotationPresent(DaoQueryRowMapper.class);
+        if (info.useRowMapper) {
+            info.rowMapper = classe.getAnnotation(DaoQueryRowMapper.class).mapper();
+        }
+
         if (method.isAnnotationPresent(DaoQueryUseHibernateTypes.class)) {
             info.useHibernateTypes = method.getAnnotation(DaoQueryUseHibernateTypes.class).useHibernateTypes();
         } else {
-            info.useHibernateTypes = Boolean.parseBoolean(PropertyUtil.getValue("Dao-query.use-hibernate-types", "true"));
+            info.useHibernateTypes = Boolean.parseBoolean(PropertyUtil.getValue("dao-query.use-hibernate-types", "true"));
         }
 
         info.useJdbcTemplate = method.isAnnotationPresent(DaoQueryUseJdbcTemplate.class);
         if (info.useJdbcTemplate) {
             DaoQueryUseJdbcTemplate jdbcTemplate = method.getAnnotation(DaoQueryUseJdbcTemplate.class);
         } else {
-            info.useJdbcTemplate = Boolean.parseBoolean(PropertyUtil.getValue("Dao-query.use-jdbc", "false"));
+            info.useJdbcTemplate = Boolean.parseBoolean(PropertyUtil.getValue("dao-query.use-jdbc", "false"));
         }
 
         return info;
@@ -99,18 +104,18 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                 if (parameter.isAnnotationPresent(DaoQueryParam.class)) {
                     DaoQueryParam param = parameter.getAnnotation(DaoQueryParam.class);
 
-                        if (param.addChildren()) {
-                            info.parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(param.value(), parameter.getType(), argument));
-                        } else {
-                            if (argument instanceof Map map) {
-                                info.parameterList.addAll(DaoQueryParameter.ofMap(map, param.value()));
-                            }
-                            if (argument instanceof Enum) {
-                                info.parameterList.add(new DaoQueryParameter(param.value(), DaoQueryParameter.getEnumValue(argument)));
-                            } else {
-                                info.parameterList.add(new DaoQueryParameter(param.value(), argument));
-                            }
+                    if (param.addChildren()) {
+                        info.parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(param.value(), parameter.getType(), argument));
+                    } else {
+                        if (argument instanceof Map map) {
+                            info.parameterList.addAll(DaoQueryParameter.ofMap(map, param.value()));
                         }
+                        if (argument instanceof Enum) {
+                            info.parameterList.add(new DaoQueryParameter(param.value(), DaoQueryParameter.getEnumValue(argument)));
+                        } else {
+                            info.parameterList.add(new DaoQueryParameter(param.value(), argument));
+                        }
+                    }
                 } else {
                     if (argument instanceof Map map) {
                         info.parameterList.addAll(DaoQueryParameter.ofMap(map, parameter.getName()));
@@ -121,7 +126,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                     } else if (argument instanceof org.r3al.springdao.filters.DaoQuerySql sql) {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), sql.getSql()));
                         info.parameterList.addAll(sql.getParameters());
-                    } else if(argument instanceof  DaoQueryCondition condition) {
+                    } else if (argument instanceof DaoQueryCondition condition) {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), condition.getSql()));
                         info.parameterList.addAll(condition.getParameters());
                     } else {
@@ -239,6 +244,14 @@ public class DaoQueryInfo implements Serializable, Cloneable {
         return this.returnType;
     }
 
+    public Class<?> getRowMapper() {
+        return this.rowMapper;
+    }
+
+    public boolean isUseRowMapper() {
+        return this.useRowMapper;
+    }
+
     @Override
     protected Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -288,7 +301,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
         final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
 
         String sql = getSql();
-        if(templateDataType == DaoQueryTemplateDataType.RETURN) sql = getSqlReturn();
+        if (templateDataType == DaoQueryTemplateDataType.RETURN) sql = getSqlReturn();
         else if (templateDataType == DaoQueryTemplateDataType.COUNT) sql = getSqlCount();
 
         final Matcher matcher = pattern.matcher(sql);

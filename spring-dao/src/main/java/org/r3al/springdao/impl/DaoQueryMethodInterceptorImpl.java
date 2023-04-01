@@ -50,7 +50,7 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
         LOGGER.debug("executing: {}", info.getSql());
         LOGGER.debug("parsed: {}", new ObjectMapper().writeValueAsString(parametroList));
 
-        BeanPropertyRowMapper<?> beanPropertyRowMapper = new BeanPropertyRowMapper<>(info.getAliasToBean());
+        BeanPropertyRowMapper<?> beanPropertyRowMapper = getRowMapper(info);
         if (info.getReturnType().getSimpleName().equals(Void.TYPE.getName())) {
             jdbcTemplate.update(info.getSql(), parametroList);
             return null;
@@ -71,7 +71,7 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
 
             if (info.isSingleResult()) {
                 if (info.isJavaObject()) {
-                    if (info.getSqlReturn() != null) {
+                    if (info.hasSqlReturn()) {
                         jdbcTemplate.update(info.getSql(), parametroList);
                         return jdbcTemplate.queryForObject(info.getSqlReturn(), parametroList, info.getAliasToBean());
                     }
@@ -99,6 +99,14 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
         } catch (EmptyResultDataAccessException e) {
             LOGGER.debug("executing the query and returning an empty result of type {}", info.getAliasToBean().getName());
             return null;
+        }
+    }
+
+    private BeanPropertyRowMapper<?> getRowMapper(DaoQueryInfo info){
+        if(info.isUseRowMapper()) {
+            return new BeanPropertyRowMapper<>(info.getRowMapper());
+        } else {
+            return new BeanPropertyRowMapper<>(info.getAliasToBean());
         }
     }
 
