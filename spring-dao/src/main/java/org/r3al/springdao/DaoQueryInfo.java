@@ -68,9 +68,9 @@ public class DaoQueryInfo implements Serializable, Cloneable {
             info.aliasToBean = info.returnType;
         }
 
-        info.useRowMapper = method.getReturnType().isAnnotationPresent(DaoQueryRowMapper.class);
+        info.useRowMapper = info.aliasToBean.isAnnotationPresent(DaoQueryRowMapper.class);
         if (info.useRowMapper) {
-            info.rowMapper = method.getReturnType().getAnnotation(DaoQueryRowMapper.class).mapper().getDeclaredConstructor().newInstance();
+            info.rowMapper = info.aliasToBean.getAnnotation(DaoQueryRowMapper.class).mapper().getDeclaredConstructor().newInstance();
         }
 
         if (method.isAnnotationPresent(DaoQueryUseHibernateTypes.class)) {
