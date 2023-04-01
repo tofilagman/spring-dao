@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.io.IOException;
@@ -50,7 +51,7 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
         LOGGER.debug("executing: {}", info.getSql());
         LOGGER.debug("parsed: {}", new ObjectMapper().writeValueAsString(parametroList));
 
-        BeanPropertyRowMapper<?> beanPropertyRowMapper = getRowMapper(info);
+        RowMapper<?> beanPropertyRowMapper = getRowMapper(info);
         if (info.getReturnType().getSimpleName().equals(Void.TYPE.getName())) {
             jdbcTemplate.update(info.getSql(), parametroList);
             return null;
@@ -102,9 +103,9 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
         }
     }
 
-    private BeanPropertyRowMapper<?> getRowMapper(DaoQueryInfo info){
-        if(info.isUseRowMapper()) {
-            return new BeanPropertyRowMapper<>(info.getRowMapper());
+    private RowMapper<?> getRowMapper(DaoQueryInfo info) {
+        if (info.isUseRowMapper()) {
+            return info.getRowMapper();
         } else {
             return new BeanPropertyRowMapper<>(info.getAliasToBean());
         }

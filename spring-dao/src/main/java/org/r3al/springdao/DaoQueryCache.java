@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Function;
@@ -21,7 +22,7 @@ public class DaoQueryCache {
     private static final Map<String, List<DaoQueryAccessMethod>> CACHE_ACCESS_METHODS = new HashMap<>();
     private static final Map<String, Map<String, DaoQuerySqlPattern>> CACHE_SQL_PATTERN = new HashMap<>();
 
-    public static DaoQueryInfo get(Class<? extends DaoQuery> classe, MethodInvocation invocation) throws IOException {
+    public static DaoQueryInfo get(Class<? extends DaoQuery> classe, MethodInvocation invocation) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         DaoQueryInfoKey DaoQueryInfoKey = new DaoQueryInfoKey(
                 classe.getName(),
                 invocation.getMethod().getName()
