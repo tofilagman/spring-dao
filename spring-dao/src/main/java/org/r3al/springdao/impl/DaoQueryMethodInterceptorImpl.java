@@ -103,64 +103,70 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
     }
 
     private Object executeWithEntityManager(DaoQueryInfo info) throws IOException {
+
         EntityManager entityManager = ApplicationContextProvider.getApplicationContext().getBean(EntityManager.class);
         Session session = entityManager.unwrap(Session.class);
         NativeQuery<?> query;
 
-        query = session.createNativeQuery(info.getSql(), info.getAliasToBean());
+        try {
 
-        if (!info.isUseSqlInline()) {
-            LOGGER.debug("loading template {}: {}", info.getSqlKey(), info.getSqlPattern());
-        }
+            query = session.createNativeQuery(info.getSql(), info.getAliasToBean());
 
-        LOGGER.debug("executing: {}", info.getSql());
-        LOGGER.debug("parsed: {}", new ObjectMapper().writeValueAsString(addParameterJpa(query, info)));
-
-        if (!info.isJavaObject() && !info.isEntity()) {
-            if (info.isUseHibernateTypes()) {
-                HibernateTypesMapper.map(query, info.getAliasToBean());
+            if (!info.isUseSqlInline()) {
+                LOGGER.debug("loading template {}: {}", info.getSqlKey(), info.getSqlPattern());
             }
-            query.setResultTransformer(Transformers.aliasToBean(info.getAliasToBean()));
-        }
 
-        if (info.returnTypeIsListResult()) {
-            DaoQueryListResult result = new DaoQueryListResult<>();
-            result.setData(processReturn(query.list()));
+            LOGGER.debug("executing: {}", info.getSql());
+            LOGGER.debug("parsed: {}", new ObjectMapper().writeValueAsString(addParameterJpa(query, info)));
 
-            query = session.createNativeQuery(info.getSqlCount(), Integer.class);
-            addParameterJpa(query, info, DaoQueryTemplateDataType.COUNT);
-            result.setCount((Integer) query.getSingleResultOrNull());
-            return result;
-        }
+            if (!info.isJavaObject() && !info.isEntity()) {
+                if (info.isUseHibernateTypes()) {
+                    HibernateTypesMapper.map(query, info.getAliasToBean());
+                }
+                query.setResultTransformer(Transformers.aliasToBean(info.getAliasToBean()));
+            }
 
-        if (info.getReturnType().getSimpleName().equals(Void.TYPE.getName())) {
-            query.executeUpdate();
-            return null;
-        }
+            if (info.returnTypeIsListResult()) {
+                DaoQueryListResult result = new DaoQueryListResult<>();
+                result.setData(processReturn(query.list()));
 
-        if (info.returnTypeIsOptional()) {
-            return getOptionalReturn(query::getSingleResult);
-        }
+                query = session.createNativeQuery(info.getSqlCount(), Integer.class);
+                addParameterJpa(query, info, DaoQueryTemplateDataType.COUNT);
+                result.setCount((Integer) query.getSingleResultOrNull());
+                return result;
+            }
 
-        if (info.isSingleResult()) {
-
-            if (info.hasSqlReturn()) {
+            if (info.getReturnType().getSimpleName().equals(Void.TYPE.getName())) {
                 query.executeUpdate();
-
-                query = session.createNativeQuery(info.getSqlReturn(), info.getAliasToBean());
-                addParameterJpa(query, info, DaoQueryTemplateDataType.RETURN);
+                return null;
             }
 
-            Object obj = query.getSingleResultOrNull();
-            if(obj == null)
-                return null;
-            else if (obj instanceof DaoQueryDomain cln)
-                return cln.clone();
-            else
-                return obj;
-        }
+            if (info.returnTypeIsOptional()) {
+                return getOptionalReturn(query::getSingleResult);
+            }
 
-        return processReturn(query.list());
+            if (info.isSingleResult()) {
+
+                if (info.hasSqlReturn()) {
+                    query.executeUpdate();
+
+                    query = session.createNativeQuery(info.getSqlReturn(), info.getAliasToBean());
+                    addParameterJpa(query, info, DaoQueryTemplateDataType.RETURN);
+                }
+
+                Object obj = query.getSingleResultOrNull();
+                if (obj == null)
+                    return null;
+                else if (obj instanceof DaoQueryDomain cln)
+                    return cln.clone();
+                else
+                    return obj;
+            }
+
+            return processReturn(query.list());
+        } finally {
+            session.close();
+        }
     }
 
     private Object getOptionalReturn(Supplier<Object> result) {
