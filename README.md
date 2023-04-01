@@ -7,6 +7,8 @@ Running native queries to relational database using Java often leaves the source
  
 By default dao query xml files must be added to a folder named "daoQuery" inside the resource folder. Remember, the file name must be the same as the class name.
 
+I recommend enabling jdbc as it was tested for production use. jdbc is enabled by default.
+
 This project was inspired and most of the classes are acquired from ![gasparbarancelli/spring-native-query](https://github.com/gasparbarancelli/spring-native-query)
 
 minimum jdk requirements: 17.0.2
@@ -55,6 +57,7 @@ If you use properties file
 logging.level.org.r3al.springdao=debug
 dao-query.package-scan=com.example.project1
 dao-query.use-hibernate-types=true
+dao-query.use-jdbc=true
 spring.jpa.hibernate.naming.implicit-strategy=org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
 spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 ```
@@ -111,6 +114,29 @@ data class UserTO(
     var id: Long, 
     var name: String
 ) : DaoQueryDomain()
+```
+
+**Using jdbc** : no need to add jakarta and NoArg annotations
+
+```kotlin
+  
+import org.r3al.springdao.annotations.DaoQueryRowMapper
+
+@DaoQueryRowMapper(mapper = UserTOMapper::class)
+data class UserTO( 
+    var id: Long, 
+    var name: String
+)  
+
+class UserTOMapper : RowMapper<UserTO> {
+    override fun mapRow(rs: ResultSet, rowNum: Int): UserTO {
+       return UserTO(
+           id = rs.getLong("id"), 
+           name = rs.getString("name")
+       )
+    } 
+}
+
 ```
  
 UserDaoQuery file example
