@@ -9,9 +9,11 @@ import org.r3al.springdao.templates.HandleBarTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.util.TypeInformation;
+import org.springframework.jdbc.core.RowMapper;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
@@ -41,13 +43,13 @@ public class DaoQueryInfo implements Serializable, Cloneable {
     private String sqlCount;
     private String sqlReturn;
 
-    private Class<?> rowMapper;
+    private RowMapper<?> rowMapper;
     private boolean useRowMapper;
 
     private DaoQueryInfo() {
     }
 
-    public static DaoQueryInfo of(Class<? extends DaoQuery> classe, MethodInvocation invocation) {
+    public static DaoQueryInfo of(Class<? extends DaoQuery> classe, MethodInvocation invocation) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         DaoQueryInfo info = new DaoQueryInfo();
         Method method = invocation.getMethod();
         LOGGER.debug("invoked method {}", method.getName());
@@ -68,7 +70,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
 
         info.useRowMapper = method.getReturnType().isAnnotationPresent(DaoQueryRowMapper.class);
         if (info.useRowMapper) {
-            info.rowMapper = method.getReturnType().getAnnotation(DaoQueryRowMapper.class).mapper();
+            info.rowMapper = method.getReturnType().getAnnotation(DaoQueryRowMapper.class).mapper().getDeclaredConstructor().newInstance();
         }
 
         if (method.isAnnotationPresent(DaoQueryUseHibernateTypes.class)) {
@@ -242,7 +244,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
         return this.returnType;
     }
 
-    public Class<?> getRowMapper() {
+    public RowMapper<?> getRowMapper() {
         return this.rowMapper;
     }
 
