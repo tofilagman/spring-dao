@@ -129,7 +129,7 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
 
             query = session.createNativeQuery(info.getSqlCount(), Integer.class);
             addParameterJpa(query, info, DaoQueryTemplateDataType.COUNT);
-            result.setCount((Integer) query.getSingleResult());
+            result.setCount((Integer) query.getSingleResultOrNull());
             return result;
         }
 
@@ -151,8 +151,10 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
                 addParameterJpa(query, info, DaoQueryTemplateDataType.RETURN);
             }
 
-            Object obj = query.getSingleResult();
-            if (obj instanceof DaoQueryDomain cln)
+            Object obj = query.getSingleResultOrNull();
+            if(obj == null)
+                return null;
+            else if (obj instanceof DaoQueryDomain cln)
                 return cln.clone();
             else
                 return obj;
