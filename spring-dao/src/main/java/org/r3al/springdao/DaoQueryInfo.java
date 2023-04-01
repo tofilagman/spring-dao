@@ -75,6 +75,8 @@ public class DaoQueryInfo implements Serializable, Cloneable {
         info.useJdbcTemplate = method.isAnnotationPresent(DaoQueryUseJdbcTemplate.class);
         if (info.useJdbcTemplate) {
             DaoQueryUseJdbcTemplate jdbcTemplate = method.getAnnotation(DaoQueryUseJdbcTemplate.class);
+        } else {
+            info.useJdbcTemplate = Boolean.parseBoolean(PropertyUtil.getValue("Dao-query.use-jdbc", "false"));
         }
 
         return info;
