@@ -165,11 +165,8 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
 
             return processReturn(query.list());
         } finally {
-            if(!session.isJoinedToTransaction()) {
-                entityManager.getTransaction().commit();
-                entityManager.close();
-                session.close();
-            }
+            session.close();
+            entityManager.close();
         }
     }
 
@@ -201,7 +198,7 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
     }
 
     private <T> List<T> processReturn(List<T> nlst) {
-        return (List<T>) nlst.stream().map(x-> {
+        return (List<T>) nlst.stream().map(x -> {
             if (x instanceof DaoQueryDomain cln)
                 return cln.clone();
             else
