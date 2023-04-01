@@ -66,9 +66,9 @@ public class DaoQueryInfo implements Serializable, Cloneable {
             info.aliasToBean = info.returnType;
         }
 
-        info.useRowMapper = classe.isAnnotationPresent(DaoQueryRowMapper.class);
+        info.useRowMapper = method.getReturnType().isAnnotationPresent(DaoQueryRowMapper.class);
         if (info.useRowMapper) {
-            info.rowMapper = classe.getAnnotation(DaoQueryRowMapper.class).mapper();
+            info.rowMapper = method.getReturnType().getAnnotation(DaoQueryRowMapper.class).mapper();
         }
 
         if (method.isAnnotationPresent(DaoQueryUseHibernateTypes.class)) {
@@ -121,8 +121,6 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                         info.parameterList.addAll(DaoQueryParameter.ofMap(map, parameter.getName()));
                     } else if (argument instanceof Enum) {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), DaoQueryParameter.getEnumValue(argument)));
-//                    } else if (argument instanceof DaoQueryDomain) {
-//                        info.parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(parameter.getType(), argument));
                     } else if (argument instanceof org.r3al.springdao.filters.DaoQuerySql sql) {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), sql.getSql()));
                         info.parameterList.addAll(sql.getParameters());
