@@ -118,7 +118,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                         }
                     }
                 } else {
-                    if(argument == null) {
+                    if (argument == null) {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), null));
                         continue;
                     }
@@ -293,7 +293,10 @@ public class DaoQueryInfo implements Serializable, Cloneable {
     }
 
     private Map<String, Object> getParameterMap() {
-        return this.parameterList.stream().collect(Collectors.toMap(DaoQueryParameter::getName, DaoQueryParameter::getValue));
+        //handle null entries
+        return this.parameterList.stream().collect(
+                HashMap::new, (m, v) -> m.put(v.getName(), v.getValue()), HashMap::putAll
+        );
     }
 
     public boolean isUseJdbcTemplate() {

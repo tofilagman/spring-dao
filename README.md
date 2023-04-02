@@ -119,13 +119,16 @@ data class UserTO(
 **Using jdbc** : no need to add jakarta and NoArg annotations
 
 ```kotlin
-  
+
+import jakarta.persistence.Column 
 import org.r3al.springdao.annotations.DaoQueryRowMapper
 
 @DaoQueryRowMapper(mapper = UserTOMapper::class)
 data class UserTO( 
     var id: Long, 
-    var name: String
+    var name: String,
+    @Column(name = "active")
+    var active: Boolean
 )  
 
 class UserTOMapper : RowMapper<UserTO> {
