@@ -131,7 +131,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), condition.getSql()));
                         info.parameterList.addAll(condition.getParameters());
                     } else if (argument instanceof Collection<?> lst) {
-                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), !lst.isEmpty() ? lst : null));
+                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), !lst.isEmpty() ? lst : List.of(info.DEFAULT_REP_ID)));
                     } else {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), argument));
                     }
