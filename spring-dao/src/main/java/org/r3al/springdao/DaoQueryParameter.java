@@ -5,12 +5,12 @@ import org.r3al.springdao.annotations.DaoQueryParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.data.util.TypeInformation;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class DaoQueryParameter implements Serializable, Cloneable {
 
@@ -115,6 +115,19 @@ public class DaoQueryParameter implements Serializable, Cloneable {
         } catch (Exception ignore) {
             return null;
         }
+    }
+
+    public static Collection<?> getList(Collection<?> objects){
+        if (objects.isEmpty()) {
+            return List.of(Integer.MIN_VALUE);
+        }
+
+        return objects.stream().map(x-> {
+            if(x instanceof Enum){
+                return getEnumValue(x);
+            } else
+                return x;
+        }).collect(Collectors.toList());
     }
 
     static List<DaoQueryParameter> ofMap(Map map, String name) {
