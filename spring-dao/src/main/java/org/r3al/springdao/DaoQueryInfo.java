@@ -118,6 +118,11 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                         }
                     }
                 } else {
+                    if(argument == null) {
+                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), null));
+                        continue;
+                    }
+
                     if (argument instanceof Map map) {
                         info.parameterList.addAll(DaoQueryParameter.ofMap(map, parameter.getName()));
                     } else if (argument instanceof Enum) {
@@ -130,6 +135,8 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                         info.parameterList.addAll(condition.getParameters());
                     } else if (argument instanceof Collection<?> lst) {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), DaoQueryParameter.getList(lst)));
+                    } else if (!getPackageName(argument.getClass()).startsWith("java")) {
+                        info.parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(parameter.getType(), argument));
                     } else {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), argument));
                     }
@@ -210,7 +217,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
         return isEntity;
     }
 
-    private String getPackageName(Class<?> c) {
+    public static String getPackageName(Class<?> c) {
         final String pn;
         while (c.isArray()) {
             c = c.getComponentType();
