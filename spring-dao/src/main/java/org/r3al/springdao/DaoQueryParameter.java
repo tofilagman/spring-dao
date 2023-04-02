@@ -84,7 +84,7 @@ public class DaoQueryParameter implements Serializable, Cloneable {
                     parameterList.add(new DaoQueryParameter(fieldName, DaoQueryParameter.getEnumValue(value)));
                 } else if (value instanceof Collection<?> lst) {
                     parameterList.add(new DaoQueryParameter(fieldName, DaoQueryParameter.getList(lst)));
-                } else if (DaoQueryInfo.getPackageName(value.getClass()).startsWith("java")) {
+                } else if (!DaoQueryInfo.getPackageName(value.getClass()).startsWith("java")) {
                     parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(fieldInfo.getType(), value));
                 } else {
                     parameterList.add(new DaoQueryParameter(fieldName, value));

@@ -135,7 +135,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                         info.parameterList.addAll(condition.getParameters());
                     } else if (argument instanceof Collection<?> lst) {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), DaoQueryParameter.getList(lst)));
-                    } else if (getPackageName(argument.getClass()).startsWith("java")) {
+                    } else if (!getPackageName(argument.getClass()).startsWith("java")) {
                         info.parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(parameter.getType(), argument));
                     } else {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), argument));
