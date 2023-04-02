@@ -4,7 +4,6 @@ import jakarta.persistence.Entity;
 import org.aopalliance.intercept.MethodInvocation;
 import org.r3al.springdao.annotations.*;
 import org.r3al.springdao.filters.DaoQueryCondition;
-import org.r3al.springdao.filters.DaoQueryFilter;
 import org.r3al.springdao.templates.HandleBarTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +22,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class DaoQueryInfo implements Serializable, Cloneable {
+
+    private final Integer DEFAULT_REP_ID = Integer.MIN_VALUE;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DaoQueryInfo.class);
 
@@ -129,6 +130,8 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                     } else if (argument instanceof DaoQueryCondition condition) {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), condition.getSql()));
                         info.parameterList.addAll(condition.getParameters());
+                    } else if (argument instanceof Collection<?> lst) {
+                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), !lst.isEmpty() ? lst : null));
                     } else {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), argument));
                     }
