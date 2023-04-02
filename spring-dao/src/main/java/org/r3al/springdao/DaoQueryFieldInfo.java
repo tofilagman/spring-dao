@@ -6,7 +6,7 @@ import org.r3al.springdao.annotations.DaoQueryParam;
 public class DaoQueryFieldInfo {
 
     private final DaoQueryParam param;
-    private final  Class<?> type;
+    private final Class<?> type;
     private final String name;
     private final Column column;
 
@@ -25,12 +25,16 @@ public class DaoQueryFieldInfo {
         return type;
     }
 
-    public Column getColumn() { return column; }
+    public Column getColumn() {
+        return column;
+    }
 
-    public String getSqlName(){
-        if(column != null)
+    public String getSqlName() {
+        if (column != null)
             return column.name();
-        else
+        else if (param != null) {
+            return param.value();
+        } else
             return name;
     }
 
