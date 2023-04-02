@@ -4,6 +4,7 @@ import org.aopalliance.intercept.MethodInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.core.convert.ConversionService;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -21,6 +22,8 @@ public class DaoQueryCache {
     private static final Map<String, Map<String, DaoQueryFieldInfo>> CACHE_FIELD_INFO = new HashMap<>();
     private static final Map<String, List<DaoQueryAccessMethod>> CACHE_ACCESS_METHODS = new HashMap<>();
     private static final Map<String, Map<String, DaoQuerySqlPattern>> CACHE_SQL_PATTERN = new HashMap<>();
+
+    private static ConversionService converter;
 
     public static DaoQueryInfo get(Class<? extends DaoQuery> classe, MethodInvocation invocation) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         DaoQueryInfoKey DaoQueryInfoKey = new DaoQueryInfoKey(
@@ -50,8 +53,7 @@ public class DaoQueryCache {
                 DaoQueryCache.CACHE_SQL_PATTERN.put(classe.getName(), sqlPatternMap);
             }
             DaoQuerySqlPattern pattern = sqlPatternMap.get(invocation.getMethod().getName());
-            if(pattern == null)
-            {
+            if (pattern == null) {
                 throw new RuntimeException("SQL id " + invocation.getMethod().getName() + " does not exists in resource");
             }
             info.setSqlPattern(pattern);
@@ -59,6 +61,13 @@ public class DaoQueryCache {
 
         DaoQueryInfo.setParameters(info, invocation);
         return info;
+    }
+
+    public static ConversionService getConverter() {
+        if (converter == null) {
+            converter = ApplicationContextProvider.getApplicationContext().getBean(ConversionService.class);
+        }
+        return converter;
     }
 
     static List<DaoQueryAccessMethod> getAccessMethods(Class<?> classe) {
@@ -102,7 +111,7 @@ public class DaoQueryCache {
     private static List<DaoQueryAccessField> getAccessFields(Class<?> classe) {
         List<DaoQueryAccessField> fields = new ArrayList<>();
         for (Field field : classe.getDeclaredFields()) {
-            if(Arrays.stream(field.getType().getAnnotations()).anyMatch(x-> x.annotationType().getName().equals("kotlin.Metadata"))) {
+            if (Arrays.stream(field.getType().getAnnotations()).anyMatch(x -> x.annotationType().getName().equals("kotlin.Metadata"))) {
                 continue;
             }
 

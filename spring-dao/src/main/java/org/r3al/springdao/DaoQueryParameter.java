@@ -4,9 +4,9 @@ import org.apache.commons.text.WordUtils;
 import org.r3al.springdao.annotations.DaoQueryParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.convert.ConversionService;
 
 import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -105,18 +105,8 @@ public class DaoQueryParameter implements Serializable, Cloneable {
     }
 
     public static Object getEnumValue(Object obj) {
-        try {
-            String enumValue = PropertyUtil.getValue("Dao-query.enum-value", "toValue");
-            Class cls = ((Enum) obj).getDeclaringClass();
-            for (Object o : cls.getEnumConstants()) {
-                Method m = cls.getMethod(enumValue, null);
-                if (o.toString().equals(obj.toString()))
-                    return m.invoke(o, null);
-            }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
-        }
-        return null;
+        ConversionService converter = DaoQueryCache.getConverter();
+        return converter.convert(obj, Integer.class);
     }
 
     private static Object getValue(Object object, Method method) {
