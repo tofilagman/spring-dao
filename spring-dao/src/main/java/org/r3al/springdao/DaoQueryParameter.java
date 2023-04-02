@@ -2,6 +2,7 @@ package org.r3al.springdao;
 
 import org.apache.commons.text.WordUtils;
 import org.r3al.springdao.annotations.DaoQueryParam;
+import org.r3al.springdao.filters.DaoQueryCondition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.ConversionService;
@@ -69,34 +70,24 @@ public class DaoQueryParameter implements Serializable, Cloneable {
         List<DaoQueryAccessMethod> accessMethods = DaoQueryCache.getAccessMethods(classe);
         for (DaoQueryAccessMethod accessMethod : accessMethods) {
             Object value = getValue(object, accessMethod.getMethod());
-
             DaoQueryFieldInfo fieldInfo = fieldInfoMap.get(accessMethod.getName());
 
             if (fieldInfo != null) {
-
                 String fieldName = fieldInfo.getSqlName();
 
-                DaoQueryParam queryParam = fieldInfo.getParam() != null ? fieldInfo.getParam() : accessMethod.getParam();
-                if (queryParam != null) {
-                    if (queryParam.addChildren()) {
-                        parameterList.addAll(ofDeclaredMethods(queryParam.value(), fieldInfo.getType(), value));
-                    } else {
-                        if (value instanceof Map) {
-                            parameterList.addAll(ofMap((Map) value, queryParam.value()));
-                        } else if (value instanceof Enum) {
-                            parameterList.add(new DaoQueryParameter(queryParam.value(), getEnumValue(value)));
-                        } else {
-                            parameterList.add(new DaoQueryParameter(queryParam.value(), value));
-                        }
-                    }
+                if(value == null) {
+                    parameterList.add(new DaoQueryParameter(fieldName, null));
+                    continue;
+                }
+
+                if (value instanceof Enum) {
+                    parameterList.add(new DaoQueryParameter(fieldName, DaoQueryParameter.getEnumValue(value)));
+                } else if (value instanceof Collection<?> lst) {
+                    parameterList.add(new DaoQueryParameter(fieldName, DaoQueryParameter.getList(lst)));
+                } else if (DaoQueryInfo.getPackageName(value.getClass()).startsWith("java")) {
+                    parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(fieldInfo.getType(), value));
                 } else {
-                    if (value instanceof Map) {
-                        parameterList.addAll(ofMap((Map) value, fieldName));
-                    } else if (value instanceof Enum) {
-                        parameterList.add(new DaoQueryParameter(fieldName, getEnumValue(value)));
-                    } else {
-                        parameterList.add(new DaoQueryParameter(fieldName, value));
-                    }
+                    parameterList.add(new DaoQueryParameter(fieldName, value));
                 }
             }
         }
@@ -117,13 +108,13 @@ public class DaoQueryParameter implements Serializable, Cloneable {
         }
     }
 
-    public static Collection<?> getList(Collection<?> objects){
+    public static Collection<?> getList(Collection<?> objects) {
         if (objects.isEmpty()) {
             return List.of(Integer.MIN_VALUE);
         }
 
-        return objects.stream().map(x-> {
-            if(x instanceof Enum){
+        return objects.stream().map(x -> {
+            if (x instanceof Enum) {
                 return getEnumValue(x);
             } else
                 return x;
