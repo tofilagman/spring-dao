@@ -23,8 +23,6 @@ import java.util.stream.Collectors;
 
 public class DaoQueryInfo implements Serializable, Cloneable {
 
-    private final Integer DEFAULT_REP_ID = Integer.MIN_VALUE;
-
     private static final Logger LOGGER = LoggerFactory.getLogger(DaoQueryInfo.class);
 
     private List<DaoQueryParameter> parameterList;
@@ -131,7 +129,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), condition.getSql()));
                         info.parameterList.addAll(condition.getParameters());
                     } else if (argument instanceof Collection<?> lst) {
-                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), !lst.isEmpty() ? lst : List.of(info.DEFAULT_REP_ID)));
+                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), DaoQueryParameter.getList(lst)));
                     } else {
                         info.parameterList.add(new DaoQueryParameter(parameter.getName(), argument));
                     }
