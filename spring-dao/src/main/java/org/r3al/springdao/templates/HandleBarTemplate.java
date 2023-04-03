@@ -4,6 +4,7 @@ import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Options;
 import com.github.jknack.handlebars.Template;
 import com.github.jknack.handlebars.helper.HelperFunction;
+import org.apache.commons.text.StringEscapeUtils;
 import org.r3al.springdao.ApplicationContextProvider;
 import org.r3al.springdao.DaoQueryTemplateDataType;
 import org.r3al.springdao.impl.DaoQueryMethodInterceptorImpl;
@@ -27,7 +28,8 @@ public class HandleBarTemplate {
             if (helper != null)
                 hdl.registerHelpers(helper.getObject());
             Template sqltmpl = hdl.compileInline(sql);
-            return sqltmpl.apply(data);
+            String mpc = sqltmpl.apply(data);
+            return StringEscapeUtils.unescapeHtml4(mpc);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

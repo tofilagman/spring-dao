@@ -37,11 +37,13 @@ public class DaoQuerySql {
         final Matcher matcher = pattern.matcher(value);
 
         String mpc = value;
+        var n = 0;
         while (matcher.find()) {
             for (int i = 1; i <= matcher.groupCount(); i++) {
                 final String key = generateKey();
                 mpc = mpc.replace("$" + matcher.group(i), ":" + key);
-                keys.put(key, parameters.get(i - 1));
+                keys.put(key, parameters.get(n));
+                n++;
             }
         }
         this.sql = mpc;
