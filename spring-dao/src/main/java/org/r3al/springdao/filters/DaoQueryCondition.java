@@ -37,7 +37,7 @@ public class DaoQueryCondition {
     }
 
     private String generateKey() {
-        return "FLD" + UUID.randomUUID();
+        return "FLD" + UUID.randomUUID().toString().replace("-", "");
     }
 
     private void process(String value, List<Object> parameters, DaoQueryConditionOperator operator, DaoQueryConditionType conditionType) {
@@ -49,11 +49,11 @@ public class DaoQueryCondition {
         while (matcher.find()) {
             for (int i = 1; i <= matcher.groupCount(); i++) {
                 final String key = generateKey();
-                mpc = mpc.replace(matcher.group(i), ":" + key);
+                mpc = mpc.replace("$" + matcher.group(i), ":" + key);
                 if (conditionType == DaoQueryConditionType.LIKE) {
-                    keys.put(key, "%" + parameters.get(i) + "%");
+                    keys.put(key, "%" + parameters.get(i - 1) + "%");
                 } else {
-                    keys.put(key, parameters.get(i));
+                    keys.put(key, parameters.get(i - 1));
                 }
             }
         }

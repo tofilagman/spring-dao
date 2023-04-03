@@ -28,7 +28,7 @@ public class DaoQuerySql {
     }
 
     private String generateKey() {
-        return "FQL" + UUID.randomUUID();
+        return "FQL" + UUID.randomUUID().toString().replace("-", "");
     }
 
     private void process(String value, List<Object> parameters) {
@@ -40,8 +40,8 @@ public class DaoQuerySql {
         while (matcher.find()) {
             for (int i = 1; i <= matcher.groupCount(); i++) {
                 final String key = generateKey();
-                mpc = mpc.replace(matcher.group(i), ":" + key);
-                keys.put(key, parameters.get(i));
+                mpc = mpc.replace("$" + matcher.group(i), ":" + key);
+                keys.put(key, parameters.get(i - 1));
             }
         }
         this.sql = mpc;
