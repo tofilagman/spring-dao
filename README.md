@@ -280,3 +280,49 @@ package com.example.project1
 
 annotation class NoArg
 ```
+
+Use Custom return value for Enum
+
+```kotlin
+
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+
+@Configuration
+class WebConfiguration : WebMvcConfigurer {
+
+    override fun addFormatters(registry: FormatterRegistry) { 
+        registry.addConverter(UserTypeIntConverter())
+        
+        super.addFormatters(registry)
+    }
+
+}
+
+class UserTypeIntConverter : Converter<UserType, Int> {
+    override fun convert(source: UserType): Int {
+        return source.toValue()
+    }
+}
+
+enum class UserType(val value: Int) {
+    System(1),
+    Administrator(2),
+    Supervisor(3),
+     
+    @JsonValue
+    fun toValue(): Int {
+        return this.value
+    }
+
+    companion object {
+        @JvmStatic
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        fun getByValue(value: Int?) = values().firstOrNull { it.value == value }
+
+        fun List<UserType>.toValues(): List<Int> {
+            return this.map { it.toValue() }
+        }
+    }
+}
+
+```
