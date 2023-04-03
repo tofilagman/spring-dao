@@ -37,11 +37,11 @@ public class DaoQueryCondition {
     }
 
     private String generateKey() {
-        return "FLD" + UUID.randomUUID().toString().replace("-", "");
+        return "FLD" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
     }
 
     private void process(String value, List<Object> parameters, DaoQueryConditionOperator operator, DaoQueryConditionType conditionType) {
-        final String regex = "\\$([^\")]*)";
+        final String regex = "\\$([^\") ]*)";
         final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
         final Matcher matcher = pattern.matcher(value);
 

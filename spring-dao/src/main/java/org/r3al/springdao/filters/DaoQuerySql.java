@@ -28,11 +28,11 @@ public class DaoQuerySql {
     }
 
     private String generateKey() {
-        return "FQL" + UUID.randomUUID().toString().replace("-", "");
+        return "FQL" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
     }
 
     private void process(String value, List<Object> parameters) {
-        final String regex = "\\$([^\")]*)";
+        final String regex = "\\$([^\") ]*)";
         final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
         final Matcher matcher = pattern.matcher(value);
 
