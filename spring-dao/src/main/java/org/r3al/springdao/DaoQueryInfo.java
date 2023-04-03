@@ -90,6 +90,8 @@ public class DaoQueryInfo implements Serializable, Cloneable {
 
     public static void setParameters(DaoQueryInfo info, MethodInvocation invocation) {
         info.sql = null;
+        info.sqlCount = null;
+        info.sqlReturn = null;
         info.parameterList = new ArrayList<>();
         info.parameterList.add(info.parseDbType(PropertyUtil.getValue("spring.datasource.url", "jdbc:unknown")));
 
