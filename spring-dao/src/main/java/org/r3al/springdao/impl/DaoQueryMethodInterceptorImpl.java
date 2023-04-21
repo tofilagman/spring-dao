@@ -41,7 +41,7 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
 
         Map<String, Object> parametroList = new HashMap<>();
         for (DaoQueryParameter parameter : info.getParameterList()) {
-            if (parameter.getValue() != null && info.hasSqlParameter(parameter.getName(), DaoQueryTemplateDataType.QUERY)) {
+            if (info.hasSqlParameter(parameter.getName(), DaoQueryTemplateDataType.QUERY)) {
                 parametroList.put(parameter.getName(), parameter.getValue());
             }
         }
