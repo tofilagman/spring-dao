@@ -99,49 +99,49 @@ public class DaoQueryInfo implements Serializable, Cloneable {
             Object argument = invocation.getArguments()[i];
             Parameter parameter = invocation.getMethod().getParameters()[i];
 
-            if (parameter.getType().isAssignableFrom(DaoQueryListToken.class)) {
-                var token = (DaoQueryListToken) argument;
-                info.parameterList.add(new DaoQueryParameter("skip", token.getSkip()));
-                info.parameterList.add(new DaoQueryParameter("take", token.getTake()));
-            } else {
-                if (parameter.isAnnotationPresent(DaoQueryParam.class)) {
-                    DaoQueryParam param = parameter.getAnnotation(DaoQueryParam.class);
+            if (parameter.isAnnotationPresent(DaoQueryParam.class)) {
+                DaoQueryParam param = parameter.getAnnotation(DaoQueryParam.class);
 
-                    if (param.addChildren()) {
-                        info.parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(param.value(), parameter.getType(), argument));
-                    } else {
-                        if (argument instanceof Map map) {
-                            info.parameterList.addAll(DaoQueryParameter.ofMap(map, param.value()));
-                        }
-                        if (argument instanceof Enum) {
-                            info.parameterList.add(new DaoQueryParameter(param.value(), DaoQueryParameter.getEnumValue(argument)));
-                        } else {
-                            info.parameterList.add(new DaoQueryParameter(param.value(), argument));
-                        }
-                    }
+                if (param.addChildren()) {
+                    info.parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(param.value(), parameter.getType(), argument));
                 } else {
-                    if (argument == null) {
-                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), null));
-                        continue;
-                    }
-
                     if (argument instanceof Map map) {
-                        info.parameterList.addAll(DaoQueryParameter.ofMap(map, parameter.getName()));
-                    } else if (argument instanceof Enum) {
-                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), DaoQueryParameter.getEnumValue(argument)));
-                    } else if (argument instanceof org.r3al.springdao.filters.DaoQuerySql sql) {
-                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), sql.getSql()));
-                        info.parameterList.addAll(sql.getParameters());
-                    } else if (argument instanceof DaoQueryCondition condition) {
-                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), condition.getSql()));
-                        info.parameterList.addAll(condition.getParameters());
-                    } else if (argument instanceof Collection<?> lst) {
-                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), DaoQueryParameter.getList(lst)));
-                    } else if (!getPackageName(argument.getClass()).startsWith("java")) {
-                        info.parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(parameter.getType(), argument));
-                    } else {
-                        info.parameterList.add(new DaoQueryParameter(parameter.getName(), argument));
+                        info.parameterList.addAll(DaoQueryParameter.ofMap(map, param.value()));
                     }
+                    if (argument instanceof Enum) {
+                        info.parameterList.add(new DaoQueryParameter(param.value(), DaoQueryParameter.getEnumValue(argument)));
+                    } else {
+                        info.parameterList.add(new DaoQueryParameter(param.value(), argument));
+                    }
+                }
+            } else {
+                if (argument == null) {
+                    info.parameterList.add(new DaoQueryParameter(parameter.getName(), null));
+                    continue;
+                }
+
+                if (argument instanceof Boolean bool) {
+                    info.parameterList.add(new DaoQueryParameter(parameter.getName(), bool));
+                } else if (parameter.getType().isAssignableFrom(DaoQueryListToken.class)) {
+                    var token = (DaoQueryListToken) argument;
+                    info.parameterList.add(new DaoQueryParameter("skip", token.getSkip()));
+                    info.parameterList.add(new DaoQueryParameter("take", token.getTake()));
+                } else if (argument instanceof Map map) {
+                    info.parameterList.addAll(DaoQueryParameter.ofMap(map, parameter.getName()));
+                } else if (argument instanceof Enum) {
+                    info.parameterList.add(new DaoQueryParameter(parameter.getName(), DaoQueryParameter.getEnumValue(argument)));
+                } else if (argument instanceof org.r3al.springdao.filters.DaoQuerySql sql) {
+                    info.parameterList.add(new DaoQueryParameter(parameter.getName(), sql.getSql()));
+                    info.parameterList.addAll(sql.getParameters());
+                } else if (argument instanceof DaoQueryCondition condition) {
+                    info.parameterList.add(new DaoQueryParameter(parameter.getName(), condition.getSql()));
+                    info.parameterList.addAll(condition.getParameters());
+                } else if (argument instanceof Collection<?> lst) {
+                    info.parameterList.add(new DaoQueryParameter(parameter.getName(), DaoQueryParameter.getList(lst)));
+                } else if (!getPackageName(argument.getClass()).startsWith("java")) {
+                    info.parameterList.addAll(DaoQueryParameter.ofDeclaredMethods(parameter.getType(), argument));
+                } else {
+                    info.parameterList.add(new DaoQueryParameter(parameter.getName(), argument));
                 }
             }
         }
