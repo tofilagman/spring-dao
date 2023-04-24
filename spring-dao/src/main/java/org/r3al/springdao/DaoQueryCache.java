@@ -111,10 +111,7 @@ public class DaoQueryCache {
     private static List<DaoQueryAccessField> getAccessFields(Class<?> classe) {
         List<DaoQueryAccessField> fields = new ArrayList<>();
         for (Field field : classe.getDeclaredFields()) {
-            if (Arrays.stream(field.getType().getAnnotations()).anyMatch(x -> x.annotationType().getName().equals("kotlin.Metadata"))) {
-                continue;
-            }
-
+            //Dao Domains should not have companion objects, thus this will reflect in java declared fields
             fields.add(new DaoQueryAccessField(field));
         }
         return fields;
