@@ -75,12 +75,14 @@ public class DaoQueryParameter implements Serializable, Cloneable {
             if (fieldInfo != null) {
                 String fieldName = fieldInfo.getSqlName();
 
-                if(value == null) {
+                if (value == null) {
                     parameterList.add(new DaoQueryParameter(fieldName, null));
                     continue;
                 }
 
-                if (value instanceof Enum) {
+                if (value instanceof Boolean bool) {
+                    parameterList.add(new DaoQueryParameter(fieldName, bool));
+                } else if (value instanceof Enum) {
                     parameterList.add(new DaoQueryParameter(fieldName, DaoQueryParameter.getEnumValue(value)));
                 } else if (value instanceof Collection<?> lst) {
                     parameterList.add(new DaoQueryParameter(fieldName, DaoQueryParameter.getList(lst)));
