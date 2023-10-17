@@ -112,7 +112,7 @@ public class DaoQueryParameter implements Serializable, Cloneable {
 
     public static Collection<?> getList(Collection<?> objects) {
         if (objects.isEmpty()) {
-            return List.of(Integer.MIN_VALUE);
+            return Collections.emptyList();
         }
 
         return objects.stream().map(x -> {
