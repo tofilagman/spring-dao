@@ -3,10 +3,10 @@ package org.r3al.springdao;
 import java.util.List;
 
 /**
- * This Return Type requires token arguments from {@link DaoQueryListToken}
+ * This Return Type requires token arguments from {@link DaoQueryListTokenBase}
  *
  * @param <T>
- * @see DaoQueryListToken
+ * @see DaoQueryListTokenBase
  */
 public class DaoQueryListResult<T> {
 

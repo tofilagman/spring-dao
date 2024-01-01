@@ -19,7 +19,6 @@ import java.lang.reflect.ParameterizedType;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class DaoQueryInfo implements Serializable, Cloneable {
 
@@ -122,8 +121,8 @@ public class DaoQueryInfo implements Serializable, Cloneable {
 
                 if (argument instanceof Boolean bool) {
                     info.parameterList.add(new DaoQueryParameter(parameter.getName(), bool));
-                } else if (parameter.getType().isAssignableFrom(DaoQueryListToken.class)) {
-                    var token = (DaoQueryListToken) argument;
+                } else if (parameter.getType().isAssignableFrom(DaoQueryListTokenBase.class)) {
+                    var token = (DaoQueryListTokenBase) argument;
                     info.parameterList.add(new DaoQueryParameter("skip", token.getSkip()));
                     info.parameterList.add(new DaoQueryParameter("take", token.getTake()));
                 } else if (argument instanceof Map map) {
