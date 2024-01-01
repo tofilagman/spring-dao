@@ -1,6 +1,6 @@
 package org.r3al.springdao;
 
-public class DaoQueryListToken {
+public final class DaoQueryListToken implements DaoQueryListTokenBase {
 
    public DaoQueryListToken(Integer skip, Integer take) {
         this.setSkip(skip);
