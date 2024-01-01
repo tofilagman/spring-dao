@@ -121,8 +121,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
 
                 if (argument instanceof Boolean bool) {
                     info.parameterList.add(new DaoQueryParameter(parameter.getName(), bool));
-                } else if (parameter.getType().isAssignableFrom(DaoQueryListTokenBase.class)) {
-                    var token = (DaoQueryListTokenBase) argument;
+                } else if (argument instanceof DaoQueryListTokenBase token) {
                     info.parameterList.add(new DaoQueryParameter("skip", token.getSkip()));
                     info.parameterList.add(new DaoQueryParameter("take", token.getTake()));
                 } else if (argument instanceof Map map) {
