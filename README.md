@@ -280,30 +280,64 @@ package com.example.project1
 
 annotation class NoArg
 ```
-
-Use Custom return value for Enum
-
+ 
+**Enum Conversion**
 ```kotlin
 
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+///Option A
+@Configuration
+class WebConfiguration {
 
+    @Bean
+    fun conversion(): ConversionServiceFactoryBean {
+        val bean = ConversionServiceFactoryBean()
+        bean.setConverters(
+            setOf(
+                SyncTypeConverter(),
+                SyncTypeIntConverter()
+            )
+        )
+        return bean
+    }
+}
+
+///Option B
 @Configuration
 class WebConfiguration : WebMvcConfigurer {
 
-    override fun addFormatters(registry: FormatterRegistry) { 
-        registry.addConverter(UserTypeIntConverter())
-        
+    override fun addFormatters(registry: FormatterRegistry) {
+        registry.addConverter(SyncTypeConverter())
+        //spring dao
+        registry.addConverter(SyncTypeIntConverter())
         super.addFormatters(registry)
     }
-
 }
 
-class UserTypeIntConverter : Converter<UserType, Int> {
-    override fun convert(source: UserType): Int {
+
+class SyncTypeConverter : Converter<String, SyncType> {
+    override fun convert(source: String): SyncType? {
+        return if (source.isNumeric())
+            SyncType.getByValue(Integer.parseInt(source))
+        else
+            SyncType.valueOf(source)
+    }
+}
+
+class SyncTypeIntConverter : Converter<SyncType, Int> {
+    override fun convert(source: SyncType): Int {
         return source.toValue()
     }
 }
 
+ fun String.isNumeric(): Boolean {
+    return try {
+        Integer.parseInt(this)
+        true
+    } catch (e: NumberFormatException) {
+        false
+    }
+}
+ 
 enum class UserType(val value: Int) {
     System(1),
     Administrator(2),
@@ -321,8 +355,7 @@ enum class UserType(val value: Int) {
 
         fun List<UserType>.toValues(): List<Int> {
             return this.map { it.toValue() }
-        }
-    }
+        }  
 }
 
 ```
