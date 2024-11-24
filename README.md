@@ -280,3 +280,62 @@ package com.example.project1
 
 annotation class NoArg
 ```
+
+**Enum Conversion**
+```kotlin
+
+///Option A
+@Configuration
+class WebConfiguration {
+
+    @Bean
+    fun conversion(): ConversionServiceFactoryBean {
+        val bean = ConversionServiceFactoryBean()
+        bean.setConverters(
+            setOf(
+                SyncTypeConverter(),
+                SyncTypeIntConverter()
+            )
+        )
+        return bean
+    }
+}
+
+///Option B
+@Configuration
+class WebConfiguration : WebMvcConfigurer {
+
+    override fun addFormatters(registry: FormatterRegistry) {
+        registry.addConverter(SyncTypeConverter())
+        //spring dao
+        registry.addConverter(SyncTypeIntConverter())
+        super.addFormatters(registry)
+    }
+}
+
+
+class SyncTypeConverter : Converter<String, SyncType> {
+    override fun convert(source: String): SyncType? {
+        return if (source.isNumeric())
+            SyncType.getByValue(Integer.parseInt(source))
+        else
+            SyncType.valueOf(source)
+    }
+}
+
+class SyncTypeIntConverter : Converter<SyncType, Int> {
+    override fun convert(source: SyncType): Int {
+        return source.toValue()
+    }
+}
+
+ fun String.isNumeric(): Boolean {
+    return try {
+        Integer.parseInt(this)
+        true
+    } catch (e: NumberFormatException) {
+        false
+    }
+}
+
+```
