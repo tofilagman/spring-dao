@@ -280,7 +280,7 @@ package com.example.project1
 
 annotation class NoArg
 ```
-
+ 
 **Enum Conversion**
 ```kotlin
 
@@ -336,6 +336,26 @@ class SyncTypeIntConverter : Converter<SyncType, Int> {
     } catch (e: NumberFormatException) {
         false
     }
+}
+ 
+enum class UserType(val value: Int) {
+    System(1),
+    Administrator(2),
+    Supervisor(3),
+     
+    @JsonValue
+    fun toValue(): Int {
+        return this.value
+    }
+
+    companion object {
+        @JvmStatic
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        fun getByValue(value: Int?) = values().firstOrNull { it.value == value }
+
+        fun List<UserType>.toValues(): List<Int> {
+            return this.map { it.toValue() }
+        }  
 }
 
 ```
