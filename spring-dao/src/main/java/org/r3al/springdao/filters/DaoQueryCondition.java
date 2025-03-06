@@ -1,6 +1,5 @@
 package org.r3al.springdao.filters;
 
-import jakarta.persistence.Tuple;
 import org.r3al.springdao.DaoQueryParameter;
 
 import java.util.*;
@@ -34,6 +33,18 @@ public class DaoQueryCondition {
 
     public void or(String condition, List<Object> values) {
         process(condition, values, DaoQueryConditionOperator.OR, DaoQueryConditionType.DEFAULT);
+    }
+
+    public void add(String condition, Object value, DaoQueryConditionOperator op) {
+        process(condition, List.of(value), op, DaoQueryConditionType.DEFAULT);
+    }
+
+    public void add(String condition, Object value, DaoQueryConditionType conditionType, DaoQueryConditionOperator op) {
+        process(condition, List.of(value), op, conditionType);
+    }
+
+    public void add(String condition, List<Object> values, DaoQueryConditionOperator op) {
+        process(condition, values, op, DaoQueryConditionType.DEFAULT);
     }
 
     private String generateKey() {
