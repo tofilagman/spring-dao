@@ -1,6 +1,8 @@
 package org.r3al.springdao.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import org.hibernate.Session;
@@ -49,7 +51,7 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
             LOGGER.debug("loading template {}: {}", info.getSqlKey(), info.getSqlPattern());
         }
         LOGGER.debug("executing: {}", info.getSql());
-        LOGGER.debug("parsed: {}", new ObjectMapper().writeValueAsString(parametroList));
+        LOGGER.debug("parsed: {}", toJson(parametroList));
 
         RowMapper<?> beanPropertyRowMapper = getRowMapper(info);
         if (info.getReturnType().getSimpleName().equals(Void.TYPE.getName())) {
@@ -126,7 +128,7 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
             }
 
             LOGGER.debug("executing: {}", info.getSql());
-            LOGGER.debug("parsed: {}", new ObjectMapper().writeValueAsString(addParameterJpa(query, info)));
+            LOGGER.debug("parsed: {}", toJson(addParameterJpa(query, info)));
 
             if (!info.isJavaObject() && !info.isEntity()) {
                 if (info.isUseHibernateTypes()) {
@@ -213,5 +215,11 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
             else
                 return x;
         }).collect(Collectors.toList());
+    }
+
+    private String toJson(Object data) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        return mapper.writeValueAsString(data);
     }
 }
