@@ -19,7 +19,7 @@ public class DaoQueryAutoConfiguration {
     public static final String SQL_DIRECTORY = "daoQuery";
 
     @Bean
-    public BeanFactoryPostProcessor beanFactoryPostProcessor() {
+    public static BeanFactoryPostProcessor beanFactoryPostProcessor() {
         return bf -> {
             LOGGER.debug("starting configuration");
             BeanDefinitionRegistry beanDefinitionRegistry = (BeanDefinitionRegistry) bf;

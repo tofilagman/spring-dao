@@ -1,7 +1,6 @@
 package org.r3al.springdao.impl;
 
 import org.aopalliance.intercept.MethodInterceptor;
-import org.mockito.Mockito;
 import org.r3al.springdao.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +57,6 @@ public class DaoQueryProxyFactoryImpl implements DaoQueryProxyFactory {
         }
 
         ProxyFactory proxy = new ProxyFactory();
-        //proxy.setTarget(Mockito.mock(classe));
         proxy.setTarget(classe);
         proxy.setInterfaces(classe, DaoQuery.class);
         proxy.addAdvice((MethodInterceptor) invocation -> {
