@@ -58,7 +58,8 @@ public class DaoQueryProxyFactoryImpl implements DaoQueryProxyFactory {
         }
 
         ProxyFactory proxy = new ProxyFactory();
-        proxy.setTarget(Mockito.mock(classe));
+        //proxy.setTarget(Mockito.mock(classe));
+        proxy.setTarget(classe);
         proxy.setInterfaces(classe, DaoQuery.class);
         proxy.addAdvice((MethodInterceptor) invocation -> {
             if ("toString".equals(invocation.getMethod().getName())) {
