@@ -17,6 +17,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -54,6 +55,10 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
         LOGGER.debug("parsed: {}", toJson(parametroList));
 
         RowMapper<?> beanPropertyRowMapper = getRowMapper(info);
+        if(info.isBatch()) {
+            return jdbcTemplate.batchUpdate(info.getSql(), SqlParameterSourceUtils.createBatch(parametroList));
+        }
+
         if (info.getReturnType().getSimpleName().equals(Void.TYPE.getName())) {
             jdbcTemplate.update(info.getSql(), parametroList);
             return null;
@@ -222,4 +227,5 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
         mapper.registerModule(new JavaTimeModule());
         return mapper.writeValueAsString(data);
     }
+
 }

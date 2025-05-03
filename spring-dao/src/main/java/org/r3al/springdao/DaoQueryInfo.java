@@ -43,6 +43,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
 
     private RowMapper<?> rowMapper;
     private boolean useRowMapper;
+    private boolean useBatch;
 
     private DaoQueryInfo() {
     }
@@ -83,6 +84,8 @@ public class DaoQueryInfo implements Serializable, Cloneable {
         } else {
             info.useJdbcTemplate = Boolean.parseBoolean(PropertyUtil.getValue("dao-query.use-jdbc", "true"));
         }
+
+        info.useBatch = method.isAnnotationPresent(DaoQueryBatch.class);
 
         return info;
     }
@@ -317,5 +320,9 @@ public class DaoQueryInfo implements Serializable, Cloneable {
 
         final Matcher matcher = pattern.matcher(sql);
         return matcher.find();
+    }
+
+    public boolean isBatch(){
+        return useBatch;
     }
 }
