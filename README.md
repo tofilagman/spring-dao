@@ -166,7 +166,13 @@ public interface UserDaoQuery extends DaoQuery {
   // Add pagination
   DaoQueryListResult<UserTO> findActiveUsers(DaoQueryListToken pageable);
    
-  List<UserTO> findbyId(long id); 
+  List<UserTO> findbyId(long id);
+
+  /**
+   * make sure to decorate and add the list of items when batching is intended
+   */ 
+  @DaoQueryBatch 
+  void insertBatch(List<UserTo> items)
 }
 ```
 
@@ -208,10 +214,15 @@ UserDaoQuery.xml file example
             Where id = :id
         ]]>
     </sql>
+    <sql id="insertBatch" lang="hbs" oneline="true">
+        <![CDATA[
+            insert into USER (name, active) values (:name, :active)
+        ]]>
+    </sql>
 </database>
  
 ```
-
+ 
 **Configure custom Handlebar helpers**
 
 SpringDaoConfiguration.java file example
