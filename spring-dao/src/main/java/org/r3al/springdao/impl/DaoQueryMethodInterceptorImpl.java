@@ -20,10 +20,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -42,23 +39,33 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
     private Object executeWithJdbcTemplate(DaoQueryInfo info) throws IOException {
         NamedParameterJdbcTemplate jdbcTemplate = ApplicationContextProvider.getApplicationContext().getBean(NamedParameterJdbcTemplate.class);
 
+        if (!info.isUseSqlInline()) {
+            LOGGER.debug("loading template {}: {}", info.getSqlKey(), info.getSqlPattern());
+        }
+        LOGGER.debug("executing: {}", info.getSql());
+
+        if(info.isBatch()) {
+            Object batchParam = List.of();
+            for (DaoQueryParameter parameter : info.getParameterList()) {
+                if(parameter.getValue() instanceof Collection<?> lst){
+                    batchParam = lst;
+                    break;
+                }
+            }
+            LOGGER.debug("parsed: {}", toJson(batchParam));
+
+            return jdbcTemplate.batchUpdate(info.getSql(), SqlParameterSourceUtils.createBatch(batchParam));
+        }
+
         Map<String, Object> parametroList = new HashMap<>();
         for (DaoQueryParameter parameter : info.getParameterList()) {
             if (info.hasSqlParameter(parameter.getName(), DaoQueryTemplateDataType.QUERY)) {
                 parametroList.put(parameter.getName(), parameter.getValue());
             }
         }
-        if (!info.isUseSqlInline()) {
-            LOGGER.debug("loading template {}: {}", info.getSqlKey(), info.getSqlPattern());
-        }
-        LOGGER.debug("executing: {}", info.getSql());
         LOGGER.debug("parsed: {}", toJson(parametroList));
 
         RowMapper<?> beanPropertyRowMapper = getRowMapper(info);
-        if(info.isBatch()) {
-            return jdbcTemplate.batchUpdate(info.getSql(), SqlParameterSourceUtils.createBatch(parametroList));
-        }
-
         if (info.getReturnType().getSimpleName().equals(Void.TYPE.getName())) {
             jdbcTemplate.update(info.getSql(), parametroList);
             return null;
