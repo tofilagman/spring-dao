@@ -63,7 +63,7 @@ public class DaoQueryParameter implements Serializable, Cloneable {
         return parameterList;
     }
 
-    static List<DaoQueryParameter> ofDeclaredMethods(Class<?> classe, Object object) {
+   public static List<DaoQueryParameter> ofDeclaredMethods(Class<?> classe, Object object) {
         ArrayList<DaoQueryParameter> parameterList = new ArrayList<>();
 
         Map<String, DaoQueryFieldInfo> fieldInfoMap = DaoQueryCache.getFieldInfo(classe);
@@ -130,6 +130,14 @@ public class DaoQueryParameter implements Serializable, Cloneable {
         parameterList.add(new DaoQueryParameter(name, map.keySet()));
         map.forEach((k, v) -> parameterList.add(new DaoQueryParameter(k.toString(), v)));
         return parameterList;
+    }
+
+    public static Map<String, Object> toMap(List<DaoQueryParameter> parameters) {
+        Map<String, Object> parametroList = new HashMap<>();
+        for (DaoQueryParameter parameter : parameters) {
+            parametroList.put(parameter.getName(), parameter.getValue());
+        }
+        return parametroList;
     }
 
     public String getName() {

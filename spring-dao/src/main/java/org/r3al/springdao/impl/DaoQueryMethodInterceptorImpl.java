@@ -45,10 +45,14 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
         LOGGER.debug("executing: {}", info.getSql());
 
         if(info.isBatch()) {
-            Collection<?> batchParam = List.of();
+            Collection<Map<String, Object>> batchParam = new ArrayList<>();
             for (DaoQueryParameter parameter : info.getParameterList()) {
-                if(parameter.getValue() instanceof Collection<?> lst){
-                    batchParam = lst;
+                if (parameter.getValue() instanceof Collection<?> lst) {
+                    for (Object item : lst) {
+                        List<DaoQueryParameter> dap = DaoQueryParameter.ofDeclaredMethods(item.getClass(), item);
+                        Map<String, Object> asd = DaoQueryParameter.toMap(dap);
+                        batchParam.add(asd);
+                    }
                     break;
                 }
             }
