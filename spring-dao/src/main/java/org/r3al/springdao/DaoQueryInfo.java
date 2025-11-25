@@ -7,7 +7,7 @@ import org.r3al.springdao.filters.DaoQueryCondition;
 import org.r3al.springdao.templates.HandleBarTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.util.TypeInformation;
+import org.springframework.data.core.TypeInformation;
 import org.springframework.jdbc.core.RowMapper;
 
 import java.io.IOException;

@@ -2,11 +2,9 @@ package org.r3al.springdao;
 
 import org.apache.commons.text.WordUtils;
 import org.r3al.springdao.annotations.DaoQueryParam;
-import org.r3al.springdao.filters.DaoQueryCondition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.ConversionService;
-import org.springframework.data.util.TypeInformation;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
