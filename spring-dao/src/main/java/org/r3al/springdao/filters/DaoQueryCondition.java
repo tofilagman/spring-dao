@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 public class DaoQueryCondition {
     private List< DaoQueryConditionItem> conditions = new ArrayList<>();
     private Map<String, Object> keys = new TreeMap<>();
+    private List<DaoQueryParameter> parameters = new ArrayList<>();
 
     public void and(String condition, Object value) {
         process(condition, List.of(value), DaoQueryConditionOperator.AND, DaoQueryConditionType.DEFAULT);
@@ -47,6 +48,10 @@ public class DaoQueryCondition {
         process(condition, values, op, DaoQueryConditionType.DEFAULT);
     }
 
+    public void group(DaoQueryCondition condition, DaoQueryConditionOperator op) {
+        conditions.add(DaoQueryConditionItem.INSTANCE(condition, op));
+    }
+
     private String generateKey() {
         return "FLD" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
     }
@@ -61,10 +66,11 @@ public class DaoQueryCondition {
             for (int i = 1; i <= matcher.groupCount(); i++) {
                 final String key = generateKey();
                 mpc = mpc.replace("$" + matcher.group(i), ":" + key);
-                if (conditionType == DaoQueryConditionType.LIKE) {
-                    keys.put(key, "%" + parameters.get(i - 1) + "%");
-                } else {
-                    keys.put(key, parameters.get(i - 1));
+                switch (conditionType) {
+                    case LIKE -> keys.put(key, "%" + parameters.get(i - 1) + "%");
+                    case BEGIN_LIKE -> keys.put(key, parameters.get(i - 1) + "%");
+                    case END_LIKE -> keys.put(key, "%" + parameters.get(i - 1));
+                    case DEFAULT -> keys.put(key, parameters.get(i - 1));
                 }
             }
         }
@@ -78,19 +84,25 @@ public class DaoQueryCondition {
      */
     public String getSql() {
         if (conditions.isEmpty())
-            return "";
+            return "1=1";
 
         DaoQueryConditionItem op = conditions.get(0);
 
         String npc = "";
         for (int i = 1; i < conditions.size(); i++) {
-            npc = String.format(" %s %s %s ",npc ,  conditions.get(i).op.name(), conditions.get(i).sql);
+            if(conditions.get(i).condition != null) {
+                npc = String.format(" %s %s (%s) ", npc, conditions.get(i).op.name(), conditions.get(i).condition.getSql());
+                parameters.addAll(conditions.get(i).condition.getParameters());
+            } else {
+                npc = String.format(" %s %s %s ", npc, conditions.get(i).op.name(), conditions.get(i).sql);
+            }
         }
-        return String.format(" %s (%s %s) ", op.op.name(), op.sql, npc);
+        return String.format(" (%s %s) ", op.sql, npc);
     }
 
     public List<DaoQueryParameter> getParameters(){
-        return keys.entrySet().stream().map(entry -> new DaoQueryParameter(entry.getKey(), entry.getValue())).collect(Collectors.toList());
+        parameters.addAll(keys.entrySet().stream().map(entry -> new DaoQueryParameter(entry.getKey(), entry.getValue())).toList());
+        return parameters;
     }
 
    public static DaoQueryCondition INSTANCE() {
