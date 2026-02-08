@@ -57,22 +57,24 @@ public class DaoQueryCondition {
     }
 
     private void process(String value, List<Object> parameters, DaoQueryConditionOperator operator, DaoQueryConditionType conditionType) {
-        final String regex = "\\$([^\") ]*)";
+        final String regex = "\\$([^\"): ]*)";
         final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
         final Matcher matcher = pattern.matcher(value);
 
         String mpc = value;
+        int a = 0;
         while (matcher.find()) {
             for (int i = 1; i <= matcher.groupCount(); i++) {
                 final String key = generateKey();
                 mpc = mpc.replace("$" + matcher.group(i), ":" + key);
                 switch (conditionType) {
-                    case LIKE -> keys.put(key, "%" + parameters.get(i - 1) + "%");
-                    case BEGIN_LIKE -> keys.put(key, parameters.get(i - 1) + "%");
-                    case END_LIKE -> keys.put(key, "%" + parameters.get(i - 1));
-                    case DEFAULT -> keys.put(key, parameters.get(i - 1));
+                    case LIKE -> keys.put(key, "%" + parameters.get(a) + "%");
+                    case BEGIN_LIKE -> keys.put(key, parameters.get(a) + "%");
+                    case END_LIKE -> keys.put(key, "%" + parameters.get(a));
+                    case DEFAULT -> keys.put(key, parameters.get(a));
                 }
             }
+            a++;
         }
         conditions.add(DaoQueryConditionItem.INSTANCE(mpc, operator));
     }
