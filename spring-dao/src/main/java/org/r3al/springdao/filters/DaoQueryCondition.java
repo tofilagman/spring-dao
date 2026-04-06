@@ -57,7 +57,7 @@ public class DaoQueryCondition {
     }
 
     private void process(String value, List<Object> parameters, DaoQueryConditionOperator operator, DaoQueryConditionType conditionType) {
-        final String regex = "\\$([^\"): ]*)";
+        final String regex = "\\$([^\"):, ]*)";
         final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
         final Matcher matcher = pattern.matcher(value);
 
