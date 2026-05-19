@@ -61,14 +61,14 @@ Available on **Maven Central** — no extra repository configuration needed.
 <dependency>
   <groupId>io.github.tofilagman</groupId>
   <artifactId>spring-dao</artifactId>
-  <version>2.0.0</version>
+  <version>2.0.1</version>
 </dependency>
 ```
 
 Gradle:
 
 ```kotlin
-implementation("io.github.tofilagman:spring-dao:2.0.0")
+implementation("io.github.tofilagman:spring-dao:2.0.1")
 ```
 
 **Requirements:** JDK 17.0.2+, Spring Boot 4.x (uses `jakarta.persistence`). Kotlin 1.4+ optional.
