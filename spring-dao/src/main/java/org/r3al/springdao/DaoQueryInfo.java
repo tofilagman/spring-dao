@@ -44,6 +44,7 @@ public class DaoQueryInfo implements Serializable, Cloneable {
     private RowMapper<?> rowMapper;
     private boolean useRowMapper;
     private boolean useBatch;
+    private String qualifier;
 
     private DaoQueryInfo() {
     }
@@ -87,6 +88,10 @@ public class DaoQueryInfo implements Serializable, Cloneable {
 
         info.useBatch = method.isAnnotationPresent(DaoQueryBatch.class);
 
+        if (classe.isAnnotationPresent(DaoQueryDataSource.class)) {
+            info.qualifier = classe.getAnnotation(DaoQueryDataSource.class).value();
+        }
+
         return info;
     }
 
@@ -95,7 +100,6 @@ public class DaoQueryInfo implements Serializable, Cloneable {
         info.sqlCount = null;
         info.sqlReturn = null;
         info.parameterList = new ArrayList<>();
-        info.parameterList.add(info.parseDbType(PropertyUtil.getValue("spring.datasource.url", "jdbc:unknown")));
 
         for (int i = 0; i < invocation.getArguments().length; i++) {
             Object argument = invocation.getArguments()[i];
@@ -276,17 +280,6 @@ public class DaoQueryInfo implements Serializable, Cloneable {
         return this.returnType.getName().equals(DaoQueryListResult.class.getName());
     }
 
-    private DaoQueryParameter parseDbType(String jdbcUrl) {
-        final String regex = "\\:([a-zA-Z]+)";
-        final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
-        final Matcher matcher = pattern.matcher(jdbcUrl);
-
-        if (!matcher.find()) {
-            throw new RuntimeException("Couldn't identify database type");
-        }
-        return new DaoQueryParameter("dbType", matcher.group(1));
-    }
-
     public String getSqlPattern() {
         return this.sqlPattern.template;
     }
@@ -324,5 +317,9 @@ public class DaoQueryInfo implements Serializable, Cloneable {
 
     public boolean isBatch(){
         return useBatch;
+    }
+
+    public String getQualifier() {
+        return qualifier;
     }
 }

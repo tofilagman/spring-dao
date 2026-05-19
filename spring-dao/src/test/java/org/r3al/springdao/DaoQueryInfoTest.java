@@ -3,6 +3,7 @@ package org.r3al.springdao;
 import org.aopalliance.intercept.MethodInvocation;
 import org.junit.jupiter.api.Test;
 import org.r3al.springdao.annotations.DaoQueryBatch;
+import org.r3al.springdao.annotations.DaoQueryDataSource;
 import org.r3al.springdao.annotations.DaoQuerySql;
 import org.r3al.springdao.annotations.DaoQueryUseJdbcTemplate;
 
@@ -144,5 +145,28 @@ class DaoQueryInfoTest {
         DaoQueryInfo info = DaoQueryInfo.of(SampleDao.class, invocationOf("withJdbc"));
 
         assertThat(info.isUseJdbcTemplate()).isTrue();
+    }
+
+    @Test
+    void qualifierIsNullWhenAnnotationAbsent() throws Exception {
+        DaoQueryInfo info = DaoQueryInfo.of(SampleDao.class, invocationOf("findAll"));
+
+        assertThat(info.getQualifier()).isNull();
+    }
+
+    @DaoQueryDataSource("reporting")
+    interface ReportingDao extends DaoQuery {
+        List<Bean> findAll();
+    }
+
+    @Test
+    void qualifierReadFromDaoQueryDataSourceAnnotation() throws Exception {
+        Method method = ReportingDao.class.getMethod("findAll");
+        MethodInvocation inv = mock(MethodInvocation.class);
+        when(inv.getMethod()).thenReturn(method);
+
+        DaoQueryInfo info = DaoQueryInfo.of(ReportingDao.class, inv);
+
+        assertThat(info.getQualifier()).isEqualTo("reporting");
     }
 }
