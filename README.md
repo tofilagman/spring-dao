@@ -55,12 +55,20 @@ There are several mature options in this space; `spring-dao` occupies a delibera
 
 ## Install
 
+Available on **Maven Central** — no extra repository configuration needed.
+
 ```xml
 <dependency>
-  <groupId>com.github.tofilagman</groupId>
+  <groupId>io.github.tofilagman</groupId>
   <artifactId>spring-dao</artifactId>
-  <version>0.0.2</version>
+  <version>2.0.0</version>
 </dependency>
+```
+
+Gradle:
+
+```kotlin
+implementation("io.github.tofilagman:spring-dao:2.0.0")
 ```
 
 **Requirements:** JDK 17.0.2+, Spring Boot 4.x (uses `jakarta.persistence`). Kotlin 1.4+ optional.
