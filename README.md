@@ -24,6 +24,7 @@ Inspired by and forked from [`gasparbarancelli/spring-native-query`](https://git
 - [Pagination](#pagination)
 - [Dynamic filtering](#dynamic-filtering)
 - [JdbcTemplate vs EntityManager](#jdbctemplate-vs-entitymanager)
+- [Multiple databases](#multiple-databases)
 - [Handlebars helpers](#handlebars-helpers)
 - [Kotlin support](#kotlin-support)
 - [Enum conversion](#enum-conversion)
@@ -282,6 +283,47 @@ public class UserTO {
 public class UserTOMapper implements RowMapper<UserTO> { /* … */ }
 ```
 
+## Multiple databases
+
+To talk to more than one database from the same application, declare each datasource (and its `EntityManager` / `NamedParameterJdbcTemplate`) with a Spring `@Qualifier`, then tag the DAO interface with `@DaoQueryDataSource("name")` matching that qualifier:
+
+```java
+@Configuration
+public class DataSources {
+
+    @Bean @Primary
+    @ConfigurationProperties("spring.datasource.primary")
+    DataSource primaryDs() { return DataSourceBuilder.create().build(); }
+
+    @Bean @Qualifier("reporting")
+    @ConfigurationProperties("spring.datasource.reporting")
+    DataSource reportingDs() { return DataSourceBuilder.create().build(); }
+
+    @Bean @Qualifier("reporting")
+    NamedParameterJdbcTemplate reportingJdbc(@Qualifier("reporting") DataSource ds) {
+        return new NamedParameterJdbcTemplate(ds);
+    }
+}
+```
+
+```java
+public interface UserDaoQuery extends DaoQuery {
+    // no annotation → uses the @Primary datasource
+}
+
+@DaoQueryDataSource("reporting")
+public interface ReportingDaoQuery extends DaoQuery {
+    // routes to the @Qualifier("reporting") bean
+}
+```
+
+**Notes:**
+
+- The qualifier is class-level (one DAO ↔ one database). For two databases, define two DAO interfaces.
+- DAOs without `@DaoQueryDataSource` keep the previous behavior — unqualified `getBean` lookup, which finds the `@Primary` bean or the single match.
+- For transactions, use Spring's per-manager qualifier as usual: `@Transactional("reportingTxManager")` on the service method. The library doesn't manage transactions itself; it just resolves the right `EntityManager` so it participates in whatever transaction context Spring sets up.
+- Database vendor types may differ across qualifiers (e.g., PostgreSQL primary + Oracle reporting). The library is dialect-agnostic — you just write SQL appropriate for each target in its respective XML file.
+
 ## Handlebars helpers
 
 Templates are processed by Handlebars. Built-in helpers:
@@ -291,7 +333,6 @@ Templates are processed by Handlebars. Built-in helpers:
 | `{{#query queryType}}…{{/query}}` | Emit only when rendering the **data query** |
 | `{{#count queryType}}…{{/count}}` | Emit only when rendering the **count query** (used with `DaoQueryListResult`) |
 | `{{#return queryType}}…{{/return}}` | Emit only when rendering a **post-write return query** (e.g., fetch the row just inserted) |
-| `{{#dbType dbType "postgresql"}}…{{/dbType}}` | Conditional block per JDBC driver (case-insensitive). `dbType` is auto-parsed from `spring.datasource.url`. |
 | `{{#nullOrZero v}}…{{else}}…{{/nullOrZero}}` | Branch on null-or-zero |
 | `{{queryNullable v}}` | Render value, or empty string if `null` |
 

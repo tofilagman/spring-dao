@@ -74,13 +74,6 @@ public class HandleBarTemplate {
             return "";
         }
 
-        public CharSequence dbType(String type, String value, Options options) throws IOException {
-            if (type.equalsIgnoreCase(value)) {
-                return options.fn();
-            }
-            return "";
-        }
-
         public CharSequence queryNullable(Object data, Options options) {
             return data == null ? "" : data.toString();
         }

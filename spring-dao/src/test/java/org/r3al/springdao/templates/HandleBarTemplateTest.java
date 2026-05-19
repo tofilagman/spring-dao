@@ -80,36 +80,6 @@ class HandleBarTemplateTest {
     }
 
     @Test
-    void dbTypeMatchEmitsBlock() throws IOException {
-        String out = render(
-                "{{#dbType dbType 'postgresql'}}PG-ONLY{{/dbType}}",
-                Map.of("dbType", "postgresql")
-        );
-
-        assertThat(out).contains("PG-ONLY");
-    }
-
-    @Test
-    void dbTypeMatchIsCaseInsensitive() throws IOException {
-        String out = render(
-                "{{#dbType dbType 'PostgreSQL'}}PG-ONLY{{/dbType}}",
-                Map.of("dbType", "postgresql")
-        );
-
-        assertThat(out).contains("PG-ONLY");
-    }
-
-    @Test
-    void dbTypeMismatchSuppressesBlock() throws IOException {
-        String out = render(
-                "{{#dbType dbType 'mysql'}}MYSQL{{/dbType}}",
-                Map.of("dbType", "postgresql")
-        );
-
-        assertThat(out).doesNotContain("MYSQL");
-    }
-
-    @Test
     void nullOrZeroFiresFnBranchWhenValueIsNull() throws IOException {
         Map<String, Object> ctx = new HashMap<>();
         ctx.put("v", null);

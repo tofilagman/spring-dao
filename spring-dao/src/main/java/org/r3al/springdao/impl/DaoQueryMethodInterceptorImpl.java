@@ -37,7 +37,8 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
     }
 
     private Object executeWithJdbcTemplate(DaoQueryInfo info) throws IOException {
-        NamedParameterJdbcTemplate jdbcTemplate = ApplicationContextProvider.getApplicationContext().getBean(NamedParameterJdbcTemplate.class);
+        NamedParameterJdbcTemplate jdbcTemplate = ApplicationContextProvider.getBean(
+                NamedParameterJdbcTemplate.class, info.getQualifier());
 
         if (!info.isUseSqlInline()) {
             LOGGER.debug("loading template {}: {}", info.getSqlKey(), info.getSqlPattern());
@@ -131,7 +132,8 @@ public class DaoQueryMethodInterceptorImpl implements DaoQueryMethodInterceptor 
 
     private Object executeWithEntityManager(DaoQueryInfo info) throws IOException {
 
-        EntityManager entityManager = ApplicationContextProvider.getApplicationContext().getBean(EntityManager.class);
+        EntityManager entityManager = ApplicationContextProvider.getBean(
+                EntityManager.class, info.getQualifier());
         Session session = entityManager.unwrap(Session.class);
         NativeQuery<?> query;
 
