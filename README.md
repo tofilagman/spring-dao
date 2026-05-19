@@ -1,372 +1,442 @@
 # spring-dao
-![Github Issues](https://img.shields.io/github/issues/tofilagman/spring-dao.svg) ![Github Stars](https://img.shields.io/github/stars/tofilagman/spring-dao.svg) ![Java](https://img.shields.io/badge/java-100%25-brightgreen.svg) ![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)
 
-# about spring-dao
+![Java](https://img.shields.io/badge/java-17%2B-brightgreen.svg)
+![Spring Boot](https://img.shields.io/badge/spring--boot-4.x-6db33f.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Issues](https://img.shields.io/github/issues/tofilagman/spring-dao.svg)
+![Stars](https://img.shields.io/github/stars/tofilagman/spring-dao.svg)
 
-Running native queries to relational database using Java often leaves the source code confusing and extensive, when one has too many filter conditions and also changes in table bindings.
- 
-By default dao query xml files must be added to a folder named "daoQuery" inside the resource folder. Remember, the file name must be the same as the class name.
+> **Write SQL outside your Java.** Declare a repository interface, drop the SQL alongside in an XML file, and `spring-dao` builds a Spring bean for it. No JPQL, no per-method annotations, no scaffolding.
 
-I recommend enabling jdbc as it was tested for production use. jdbc is enabled by default.
+Inspired by and forked from [`gasparbarancelli/spring-native-query`](https://github.com/gasparbarancelli/spring-native-query); modernised for **Spring Boot 4**, **Hibernate 7**, **Java 17+**.
 
-This project was inspired and most of the classes are acquired from ![gasparbarancelli/spring-native-query](https://github.com/gasparbarancelli/spring-native-query)
+---
 
-minimum jdk requirements: 17.0.2
- 
-# Example
+## Table of contents
 
-In your project add the dependency of the library, let's take an example using maven.
-  
-```
+- [Why](#why)
+- [Choosing this vs alternatives](#choosing-this-vs-alternatives)
+- [Install](#install)
+- [How it works in 30 seconds](#how-it-works-in-30-seconds)
+- [Quick start](#quick-start)
+- [Package scanning](#package-scanning)
+- [Return-type cheatsheet](#return-type-cheatsheet)
+- [Pagination](#pagination)
+- [Dynamic filtering](#dynamic-filtering)
+- [JdbcTemplate vs EntityManager](#jdbctemplate-vs-entitymanager)
+- [Handlebars helpers](#handlebars-helpers)
+- [Kotlin support](#kotlin-support)
+- [Enum conversion](#enum-conversion)
+- [Configuration reference](#configuration-reference)
+
+---
+
+## Why
+
+Hand-written native SQL inside Java gets tangled fast — string concatenation for dynamic filters, schema changes that ripple through quoted column names, and giant method bodies whose actual business intent is buried. `spring-dao` moves the SQL into external **Handlebars-powered XML templates** keyed by method name, so your Java side stays a clean interface and your SQL side reads like, well, SQL.
+
+## Choosing this vs alternatives
+
+There are several mature options in this space; `spring-dao` occupies a deliberate niche. Use the table to self-qualify before reading the rest of the README.
+
+| Tool | Style | Pick it when… |
+|---|---|---|
+| **`spring-dao`** *(this project)* | External SQL in XML, Handlebars templating, interface method = SQL id | You want SQL visible and external, but find MyBatis's XML grammar verbose and JPA's abstraction leaky. Spring Boot 4 / Java 17 first. |
+| **Spring Data JPA** | Derived queries + `@Query`; entity-driven | The schema is yours to shape, SQL is incidental, and method-name magic (`findByEmailAndActiveTrue`) earns its keep. |
+| **MyBatis** | XML mappers with `<if>` / `<foreach>` / `<choose>` tags | You need a mature ecosystem: plugins, type handlers, dialect packs, vendor support, long-term stability. |
+| **JOOQ** | Type-safe SQL DSL in Java, generated from schema | Compile-time SQL correctness is worth a code-gen step in the build. |
+| **`NamedParameterJdbcTemplate`** (raw) | SQL strings inline in repository code | One-off service, lowest dependency footprint, no abstraction wanted. |
+| **JPA `@NamedNativeQuery`** | Native SQL via annotations on entities | You're already JPA-heavy and just need an occasional escape hatch. |
+
+**What `spring-dao` trades away.** There is no IDE jump from interface method → XML file, no SQL syntax check at compile time, and a typo in a column name (or a method/sql-id mismatch) surfaces only at runtime. If those matter more than terse XML and zero ceremony, pick **JOOQ** for safety or **MyBatis** for tooling depth.
+
+**The honest niche.** A small-to-mid Spring Boot 4 / Java 17 project where SQL is a first-class language, you don't want JPA's surprises, and MyBatis feels too XML-heavy for what you're trying to do.
+
+## Install
+
+```xml
 <dependency>
-    <groupId>com.github.tofilagman</groupId>
-    <artifactId>spring-dao</artifactId>
-    <version>0.0.2</version>
+  <groupId>com.github.tofilagman</groupId>
+  <artifactId>spring-dao</artifactId>
+  <version>0.0.2</version>
 </dependency>
-```   
-If you are using Spring Boot 3, you must tell Spring to scan the io.github package, as follows:
-@ComponentScan(basePackages = {"io.github", "here is your application package"})
-
-Inside the resource folder create a file named data.sql and insert the script.
-
-```sql
-CREATE TABLE USER (
-  cod INT NOT NULL,
-  full_name VARCHAR(45) NULL,
-  active INT NULL,
-  PRIMARY KEY (cod)
-);
-
-INSERT INTO USER (cod, full_name, active)
-VALUES (1, 'Gaspar', 1),
-       (2, 'Elton', 1),
-       (3, 'Lucini', 1),
-       (4, 'Diogo', 1),
-       (5, 'Daniel', 1),
-       (6, 'Marcos', 1),
-       (7, 'Fernanda', 1),
-       (8, 'Maicon', 1),
-       (9, 'Rafael', 0);
 ```
 
-First define in your configuration file the package scan of your project, The files application.properties, bootstrap.properties, application.yaml, application.yml, bootstrap.yml and bootstrap.yaml are supported, the property.
+**Requirements:** JDK 17.0.2+, Spring Boot 4.x (uses `jakarta.persistence`). Kotlin 1.4+ optional.
 
-If you use properties file
+## How it works in 30 seconds
 
-``` properties
-logging.level.org.r3al.springdao=debug
-dao-query.package-scan=com.example.project1
-dao-query.use-hibernate-types=true
-dao-query.use-jdbc=true
-spring.jpa.hibernate.naming.implicit-strategy=org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
-spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-```
-  
-We can also define programatically implementing the interface DaoQueryConfig.
+1. You define an **interface** extending `DaoQuery`. Each method's signature declares its return shape (entity, list, optional, pageable, void, batch).
+2. You drop an **XML file** named after the interface in `src/main/resources/daoQuery/`. Each `<sql id="..."/>` matches a method name.
+3. `spring-dao` scans your packages on startup, builds a proxy for each interface, and registers it as a Spring bean. Inject it like any other repository.
 
-``` java
-import org.r3al.springdao.DaoQueryConfig;
+```java
+@Service
+class UserService {
+    private final UserDaoQuery userDao; // injected
 
-public class DaoQueryDefaultConfig implements DaoQueryConfig {
+    UserService(UserDaoQuery userDao) { this.userDao = userDao; }
 
-    @Override
-    public String getPackageScan() {
-        return "com.example.project1";
-    } 
-
-    @Override
-    public boolean getUseHibernateTypes() {
-        return false;
+    List<UserTO> activeUsers() {
+        return userDao.findActiveUsers(new DaoQueryListToken(0, 50)).getData();
     }
-
 }
 ```
 
-UserTO file example
+## Quick start
+
+### 1. Define the DAO interface
 
 ```java
-import lombok.*;
-import org.r3al.springdao.DaoQueryDomain
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
+import org.r3al.springdao.*;
+import org.r3al.springdao.annotations.*;
+import java.util.List;
+import java.util.Optional;
+
+public interface UserDaoQuery extends DaoQuery {
+
+    List<UserTO> findUsers();
+
+    UserTO findById(long id);
+
+    Optional<UserTO> findByEmail(String email);
+
+    DaoQueryListResult<UserTO> findActiveUsers(DaoQueryListToken pageable);
+
+    @DaoQuerySql("SELECT cod AS \"id\", full_name AS \"name\" FROM USER")
+    List<UserTO> findUsersInline();
+
+    @DaoQueryBatch
+    void insertBatch(List<UserTO> items);
+}
+```
+
+### 2. Pair it with SQL
+
+`src/main/resources/daoQuery/UserDaoQuery.xml`:
+
+```xml
+<?xml version="1.0" ?>
+<database>
+    <sql id="findUsers" lang="hbs" oneline="true">
+        <![CDATA[
+            SELECT cod AS "id", full_name AS "name" FROM USER
+        ]]>
+    </sql>
+
+    <sql id="findById" lang="hbs" oneline="true">
+        <![CDATA[
+            SELECT cod AS "id", full_name AS "name" FROM USER WHERE cod = :id
+        ]]>
+    </sql>
+
+    <sql id="findActiveUsers" lang="hbs" oneline="true">
+        <![CDATA[
+            {{#query queryType}}
+                SELECT cod AS "id", full_name AS "name" FROM USER
+                WHERE active = 1
+                LIMIT {{skip}}, {{take}}
+            {{/query}}
+            {{#count queryType}}
+                SELECT COUNT(1) FROM USER WHERE active = 1
+            {{/count}}
+        ]]>
+    </sql>
+
+    <sql id="insertBatch" lang="hbs" oneline="true">
+        <![CDATA[
+            INSERT INTO USER (name, active) VALUES (:name, :active)
+        ]]>
+    </sql>
+</database>
+```
+
+### 3. Define the data class
+
+```java
+import org.r3al.springdao.DaoQueryDomain;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import lombok.Data;
 
 @Data
 @Entity
 public class UserTO extends DaoQueryDomain {
-   @Id
-  private Number id;
-  private String name;
-
-}
-```
-
-```kotlin
- 
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
-import org.r3al.springdao.DaoQueryDomain
-import com.example.project1.NoArg
-
-@NoArg
-@Entity
-data class UserTO(
     @Id
-    var id: Long, 
-    var name: String
-) : DaoQueryDomain()
-```
-
-**Using jdbc** : no need to add jakarta and NoArg annotations
-
-```kotlin
-
-import jakarta.persistence.Column 
-import org.r3al.springdao.annotations.DaoQueryRowMapper
-
-@DaoQueryRowMapper(mapper = UserTOMapper::class)
-data class UserTO( 
-    var id: Long, 
-    var name: String,
-    @Column(name = "active")
-    var active: Boolean
-)  
-
-class UserTOMapper : RowMapper<UserTO> {
-    override fun mapRow(rs: ResultSet, rowNum: Int): UserTO {
-       return UserTO(
-           id = rs.getLong("id"), 
-           name = rs.getString("name")
-       )
-    } 
+    private Long id;
+    private String name;
 }
-
 ```
- 
-UserDaoQuery file example
+
+That's the entire setup. **No `@Repository`, no manual bean registration.** Inject `UserDaoQuery` anywhere Spring can.
+
+## Package scanning
+
+By default `spring-dao` scans the same packages as your `@SpringBootApplication` (via Spring's `AutoConfigurationPackages`). **If your DAO interfaces are inside the application's package tree, you don't need to configure anything.**
+
+For DAOs that live elsewhere, mark a `@Configuration` class with `@DaoQueryScan`:
 
 ```java
-import org.r3al.springdao.DaoQuery
-import org.r3al.springdao.DaoQueryListResult
-import org.r3al.springdao.DaoQueryListToken
-
-import java.util.List;
-
-
-public interface UserDaoQuery extends DaoQuery {
-
-  List<UserTO> findUsers();
- 
-  @DaoQuerySql("SELECT cod as \"id\", full_name as \"name\" FROM USER")
-  List<UserTO> findBySqlInline();
-
-  List<UserTO> findWithCondition(DaoQueryCondition filter);
-   
-  List<UserTO> findUsersBySql(DaoQuerySql filter);
-  
-  // Add pagination
-  DaoQueryListResult<UserTO> findActiveUsers(DaoQueryListToken pageable);
-   
-  List<UserTO> findbyId(long id);
-
-  /**
-   * make sure to decorate and add the list of items when batching is intended
-   */ 
-  @DaoQueryBatch 
-  void insertBatch(List<UserTo> items)
-}
+@Configuration
+@DaoQueryScan(basePackages = "com.example.repos")
+public class DaoQueryConfig { }
 ```
 
-UserDaoQuery.xml file example
+You can also point at a class instead of a package string (refactor-safe):
+
+```java
+@DaoQueryScan(basePackageClasses = UserDaoQuery.class)
+```
+
+> **Legacy:** the property `dao-query.package-scan=com.example.repos` is still honored additively for backward compatibility, but `@DaoQueryScan` is preferred.
+
+## Return-type cheatsheet
+
+| Method return type | Behavior |
+|---|---|
+| `T` (single) | One row mapped to `T`. Empty result → `null`. |
+| `Optional<T>` | One row, empty `Optional` on no match. |
+| `List<T>` / `Iterable<T>` | Multi-row mapped to a list. |
+| `DaoQueryListResult<T>` | Data **and** count. SQL must define both `{{#query}}` and `{{#count}}` blocks. |
+| `void` | Executes update — `INSERT`/`UPDATE`/`DELETE`. |
+| `void` + `@DaoQueryBatch` | Batch update; accepts a `List<T>` parameter and binds each element. |
+
+## Pagination
+
+Any argument that implements `DaoQueryListTokenBase` makes `:skip` and `:take` available inside the template:
+
+```java
+DaoQueryListResult<UserTO> page(DaoQueryListToken pageable);
+```
 
 ```xml
-<?xml version="1.0" ?>
-
-<database>
-    <sql id="findUsers" lang="hbs" oneline="true">
-        <![CDATA[
-            SELECT cod as "id", full_name as "name" FROM USER
-        ]]>
-    </sql>
-    <sql id="findWithCondition" lang="hbs" oneline="true">
-        <![CDATA[
-            SELECT cod as "id", full_name as "name" FROM USER Where {{filter}}
-        ]]>
-    </sql>
-    <sql id="findUsersBySql" lang="hbs" oneline="true">
-        <![CDATA[
-            SELECT cod as "id", full_name as "name" FROM USER Where {{filter}}
-        ]]>
-    </sql>
-    <sql id="findActiveUsers" lang="hbs" oneline="true">
-        <![CDATA[
-            {{#query queryType}}
-                SELECT cod as "id", full_name as "name" FROM USER
-                    limit {{skip}}, {{take}}
-            {{/query}}
-            {{#count queryType}}
-                SELECT count(1) FROM USER
-            {{/count}}
-        ]]>
-    </sql>
-     <sql id="findbyId" lang="hbs" oneline="true">
-        <![CDATA[
-            SELECT cod as "id", full_name as "name" FROM USER 
-            Where id = :id
-        ]]>
-    </sql>
-    <sql id="insertBatch" lang="hbs" oneline="true">
-        <![CDATA[
-            insert into USER (name, active) values (:name, :active)
-        ]]>
-    </sql>
-</database>
- 
+<sql id="page" lang="hbs" oneline="true">
+    <![CDATA[
+        {{#query queryType}}
+            SELECT cod AS "id", full_name AS "name" FROM USER LIMIT {{skip}}, {{take}}
+        {{/query}}
+        {{#count queryType}}
+            SELECT COUNT(1) FROM USER
+        {{/count}}
+    ]]>
+</sql>
 ```
- 
-**Configure custom Handlebar helpers**
-
-SpringDaoConfiguration.java file example
 
 ```java
-import org.springframework.context.annotation.Configuration
-import org.r3al.springdao.templates.DaoQueryTemplateHelper
-import org.springframework.context.annotation.Bean
+DaoQueryListResult<UserTO> page = userDao.page(new DaoQueryListToken(0, 20));
+page.getData();   // List<UserTO>
+page.getCount();  // total rows ignoring LIMIT
+```
 
+## Dynamic filtering
+
+For runtime-built `WHERE` clauses without string concatenation, declare a `DaoQueryCondition` parameter and reference it in the template:
+
+```java
+List<UserTO> findWithCondition(DaoQueryCondition filter);
+```
+
+```xml
+<sql id="findWithCondition" lang="hbs" oneline="true">
+    <![CDATA[
+        SELECT cod AS "id", full_name AS "name" FROM USER WHERE {{filter}}
+    ]]>
+</sql>
+```
+
+```java
+DaoQueryCondition filter = DaoQueryCondition.INSTANCE();
+filter.and("active = $active", 1);
+filter.and("full_name like $name", "Tofi", DaoQueryConditionType.LIKE);
+userDao.findWithCondition(filter);
+```
+
+Available condition types: `DEFAULT`, `LIKE`, `BEGIN_LIKE`, `END_LIKE`. Use `.group(otherCondition, AND|OR)` to nest. Use `DaoQuerySql.of("...", args...)` as a lower-level escape hatch when you need to inject a whole SQL fragment, not just a `WHERE`.
+
+## JdbcTemplate vs EntityManager
+
+`spring-dao` defaults to `NamedParameterJdbcTemplate`. Switch to Hibernate's `EntityManager` (so results flow through your `@Entity` registry and custom Hibernate user types) globally:
+
+```properties
+dao-query.use-jdbc=false
+dao-query.use-hibernate-types=true
+```
+
+…or per-method:
+
+```java
+@DaoQueryUseJdbcTemplate          // force JDBC
+@DaoQueryUseHibernateTypes        // force Hibernate types
+```
+
+When using JDBC mode you can skip the JPA annotations entirely and supply a `RowMapper` via `@DaoQueryRowMapper` on the data class:
+
+```java
+@DaoQueryRowMapper(mapper = UserTOMapper.class)
+public class UserTO {
+    private Long id;
+    private String name;
+    @Column(name = "active") private boolean active;
+}
+
+public class UserTOMapper implements RowMapper<UserTO> { /* … */ }
+```
+
+## Handlebars helpers
+
+Templates are processed by Handlebars. Built-in helpers:
+
+| Helper | Purpose |
+|---|---|
+| `{{#query queryType}}…{{/query}}` | Emit only when rendering the **data query** |
+| `{{#count queryType}}…{{/count}}` | Emit only when rendering the **count query** (used with `DaoQueryListResult`) |
+| `{{#return queryType}}…{{/return}}` | Emit only when rendering a **post-write return query** (e.g., fetch the row just inserted) |
+| `{{#dbType dbType "postgresql"}}…{{/dbType}}` | Conditional block per JDBC driver (case-insensitive). `dbType` is auto-parsed from `spring.datasource.url`. |
+| `{{#nullOrZero v}}…{{else}}…{{/nullOrZero}}` | Branch on null-or-zero |
+| `{{queryNullable v}}` | Render value, or empty string if `null` |
+
+### Adding your own helpers
+
+```java
 @Configuration
 public class SpringDaoConfiguration {
 
     @Bean
-    public DaoQueryTemplateHelper templateHelper(){
-        return new DaoQueryTemplateHelper.register(new HandleBarHelpers());
+    public DaoQueryTemplateHelper templateHelper() {
+        return DaoQueryTemplateHelper.register(new MyHelpers());
+    }
+
+    public static class MyHelpers {
+        public CharSequence upper(String value) {
+            return value == null ? "" : value.toUpperCase();
+        }
     }
 }
-
 ```
 
-**Kotlin NoArg requirements**
+`MyHelpers` is registered with Handlebars automatically; each public method becomes a `{{upper foo}}` style helper.
 
-```xml
-<build>
-		<sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
-		<testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-			<plugin>
-				<groupId>org.jetbrains.kotlin</groupId>
-				<artifactId>kotlin-maven-plugin</artifactId>
-				<configuration>
-					<args>
-						<arg>-Xjsr305=strict</arg>
-					</args>
-					<compilerPlugins>
-						<plugin>spring</plugin>
-						<plugin>no-arg</plugin>
-					</compilerPlugins>
-					<pluginOptions>
-						<option>no-arg:annotation=com.example.project1.NoArg</option>
-					</pluginOptions>
-				</configuration>
-				<dependencies>
-					<dependency>
-						<groupId>org.jetbrains.kotlin</groupId>
-						<artifactId>kotlin-maven-allopen</artifactId>
-						<version>${kotlin.version}</version>
-					</dependency>
-					<dependency>
-						<groupId>org.jetbrains.kotlin</groupId>
-						<artifactId>kotlin-maven-noarg</artifactId>
-						<version>${kotlin.version}</version>
-					</dependency>
-				</dependencies>
-			</plugin>
-		</plugins>
-	</build>
+## Kotlin support
+
+```kotlin
+@NoArg
+@Entity
+data class UserTO(
+    @Id var id: Long,
+    var name: String
+) : DaoQueryDomain()
 ```
 
 ```kotlin
-package com.example.project1
-
+package com.example
 annotation class NoArg
 ```
- 
-**Enum Conversion**
+
+Kotlin's `data class` has no no-arg constructor by default; Hibernate needs one. The [`no-arg` compiler plugin](https://kotlinlang.org/docs/no-arg-plugin.html) generates one for any class annotated with `@NoArg`:
+
+```xml
+<plugin>
+  <groupId>org.jetbrains.kotlin</groupId>
+  <artifactId>kotlin-maven-plugin</artifactId>
+  <configuration>
+    <compilerPlugins>
+      <plugin>spring</plugin>
+      <plugin>no-arg</plugin>
+    </compilerPlugins>
+    <pluginOptions>
+      <option>no-arg:annotation=com.example.NoArg</option>
+    </pluginOptions>
+  </configuration>
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-maven-allopen</artifactId>
+      <version>${kotlin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-maven-noarg</artifactId>
+      <version>${kotlin.version}</version>
+    </dependency>
+  </dependencies>
+</plugin>
+```
+
+If you use **JDBC mode** (default), you can skip the JPA + no-arg dance entirely and supply a `RowMapper`:
+
 ```kotlin
+@DaoQueryRowMapper(mapper = UserTOMapper::class)
+data class UserTO(
+    var id: Long,
+    var name: String,
+    @Column(name = "active") var active: Boolean
+)
 
-///Option A
-@Configuration
-class WebConfiguration {
-
-    @Bean
-    fun conversion(): ConversionServiceFactoryBean {
-        val bean = ConversionServiceFactoryBean()
-        bean.setConverters(
-            setOf(
-                SyncTypeConverter(),
-                SyncTypeIntConverter()
-            )
-        )
-        return bean
-    }
+class UserTOMapper : RowMapper<UserTO> {
+    override fun mapRow(rs: ResultSet, rowNum: Int) = UserTO(
+        id = rs.getLong("id"),
+        name = rs.getString("name"),
+        active = rs.getBoolean("active")
+    )
 }
+```
 
-///Option B
+## Enum conversion
+
+For binding enum-valued parameters to SQL, register a Spring `Converter<MyEnum, Integer>` (or whatever your DB representation is). `spring-dao` looks up the `ConversionService` automatically and uses it to coerce enum arguments before binding.
+
+```kotlin
 @Configuration
 class WebConfiguration : WebMvcConfigurer {
-
     override fun addFormatters(registry: FormatterRegistry) {
         registry.addConverter(SyncTypeConverter())
-        //spring dao
         registry.addConverter(SyncTypeIntConverter())
-        super.addFormatters(registry)
     }
 }
 
-
 class SyncTypeConverter : Converter<String, SyncType> {
-    override fun convert(source: String): SyncType? {
-        return if (source.isNumeric())
-            SyncType.getByValue(Integer.parseInt(source))
-        else
-            SyncType.valueOf(source)
-    }
+    override fun convert(source: String): SyncType =
+        if (source.toIntOrNull() != null) SyncType.getByValue(source.toInt())!!
+        else SyncType.valueOf(source)
 }
 
 class SyncTypeIntConverter : Converter<SyncType, Int> {
-    override fun convert(source: SyncType): Int {
-        return source.toValue()
-    }
+    override fun convert(source: SyncType): Int = source.value
 }
 
- fun String.isNumeric(): Boolean {
-    return try {
-        Integer.parseInt(this)
-        true
-    } catch (e: NumberFormatException) {
-        false
-    }
-}
- 
-enum class UserType(val value: Int) {
-    System(1),
-    Administrator(2),
-    Supervisor(3),
-     
-    @JsonValue
-    fun toValue(): Int {
-        return this.value
-    }
+enum class SyncType(val value: Int) {
+    System(1), Administrator(2), Supervisor(3);
 
     companion object {
         @JvmStatic
-        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-        fun getByValue(value: Int?) = values().firstOrNull { it.value == value }
-
-        fun List<UserType>.toValues(): List<Int> {
-            return this.map { it.toValue() }
-        }  
+        fun getByValue(value: Int?) = entries.firstOrNull { it.value == value }
+    }
 }
-
 ```
+
+## Configuration reference
+
+| Property | Default | Description |
+|---|---|---|
+| `dao-query.package-scan` | *(auto-detected)* | Extra package(s) to scan. Prefer `@DaoQueryScan`. |
+| `dao-query.use-jdbc` | `true` | `true` → `NamedParameterJdbcTemplate`; `false` → Hibernate `EntityManager`. |
+| `dao-query.use-hibernate-types` | `true` | Register Hibernate user types for `aliasToBean` (EntityManager path only). |
+| `dao-query.sql.directory` | `daoQuery` | Resource directory holding the XML files. |
+| `logging.level.org.r3al.springdao` | `info` | Set to `debug` to log every rendered SQL + bound parameters. |
+
+You can also implement these programmatically:
+
+```java
+public class DaoQueryDefaultConfig implements DaoQueryConfig {
+    @Override public String getPackageScan() { return "com.example.repos"; }
+    @Override public boolean getUseHibernateTypes() { return false; }
+}
+```
+
+Supported config files: `application.properties`, `bootstrap.properties`, `application.yaml`, `application.yml`, `bootstrap.yml`, `bootstrap.yaml`.
+
+---
+
+## License
+
+MIT.

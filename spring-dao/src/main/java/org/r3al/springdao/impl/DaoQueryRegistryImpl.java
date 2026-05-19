@@ -28,9 +28,14 @@ public class DaoQueryRegistryImpl implements DaoQueryRegistry {
     @Override
     public void registry(Set<Class<? extends DaoQuery>> DaoQueryList) {
         for (Class<? extends DaoQuery> classe : DaoQueryList) {
+            String beanName = Introspector.decapitalize(classe.getSimpleName());
+            if (registry.containsBeanDefinition(beanName)) {
+                // Reachable when @DaoQueryScan packages overlap the auto-configured scan.
+                LOGGER.debug("skipping already-registered bean {}", beanName);
+                continue;
+            }
             Object source = DaoQueryProxyFactory.create(classe);
             AbstractBeanDefinition beanDefinition = DaoQueryBeanDefinition.of(classe, source);
-            String beanName = Introspector.decapitalize(classe.getSimpleName());
             LOGGER.debug("registering the bean {}", beanName);
             registry.registerBeanDefinition(beanName, beanDefinition);
         }

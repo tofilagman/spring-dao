@@ -11,19 +11,20 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class DaoQueryCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DaoQueryCache.class);
-    private static String CACHE_ROOT_PACKAGE;
-    private static final Map<DaoQueryInfoKey, DaoQueryInfo> CACHE_Dao_QUERY_INFO = new HashMap<>();
-    private static final Map<String, Map<String, DaoQueryFieldInfo>> CACHE_FIELD_INFO = new HashMap<>();
-    private static final Map<String, List<DaoQueryAccessMethod>> CACHE_ACCESS_METHODS = new HashMap<>();
-    private static final Map<String, Map<String, DaoQuerySqlPattern>> CACHE_SQL_PATTERN = new HashMap<>();
+    private static volatile String CACHE_ROOT_PACKAGE;
+    private static final Map<DaoQueryInfoKey, DaoQueryInfo> CACHE_Dao_QUERY_INFO = new ConcurrentHashMap<>();
+    private static final Map<String, Map<String, DaoQueryFieldInfo>> CACHE_FIELD_INFO = new ConcurrentHashMap<>();
+    private static final Map<String, List<DaoQueryAccessMethod>> CACHE_ACCESS_METHODS = new ConcurrentHashMap<>();
+    private static final Map<String, Map<String, DaoQuerySqlPattern>> CACHE_SQL_PATTERN = new ConcurrentHashMap<>();
 
-    private static ConversionService converter;
+    private static volatile ConversionService converter;
 
     public static DaoQueryInfo get(Class<? extends DaoQuery> classe, MethodInvocation invocation) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         DaoQueryInfoKey DaoQueryInfoKey = new DaoQueryInfoKey(
@@ -31,17 +32,20 @@ public class DaoQueryCache {
                 invocation.getMethod().getName()
         );
 
-        DaoQueryInfo info = DaoQueryCache.CACHE_Dao_QUERY_INFO.get(DaoQueryInfoKey);
-        if (info == null) {
-            info = DaoQueryInfo.of(classe, invocation);
-            DaoQueryCache.CACHE_Dao_QUERY_INFO.put(DaoQueryInfoKey, info);
-        } else {
-            try {
-                info = (DaoQueryInfo) info.clone();
-            } catch (CloneNotSupportedException e) {
-                LOGGER.debug("error in cloning the information that was cached in method {} of class {}", invocation.getMethod().getName(), classe.getName());
-                throw new RuntimeException(e);
+        DaoQueryInfo cached = DaoQueryCache.CACHE_Dao_QUERY_INFO.get(DaoQueryInfoKey);
+        if (cached == null) {
+            DaoQueryInfo built = DaoQueryInfo.of(classe, invocation);
+            cached = DaoQueryCache.CACHE_Dao_QUERY_INFO.putIfAbsent(DaoQueryInfoKey, built);
+            if (cached == null) {
+                cached = built;
             }
+        }
+        DaoQueryInfo info;
+        try {
+            info = (DaoQueryInfo) cached.clone();
+        } catch (CloneNotSupportedException e) {
+            LOGGER.debug("error in cloning the information that was cached in method {} of class {}", invocation.getMethod().getName(), classe.getName());
+            throw new RuntimeException(e);
         }
 
         if (!info.isUseSqlInline()) {
@@ -49,8 +53,11 @@ public class DaoQueryCache {
             if (sqlPatternMap == null) {
                 DaoQueryResourceLoader resourceLoader = new DaoQueryResourceLoader(getBootApplicationPackageName());
                 List<DaoQuerySqlPattern> sqlPatterns = resourceLoader.loadResource(classe);
-                sqlPatternMap = sqlPatterns.stream().collect(Collectors.toMap(DaoQuerySqlPattern::getKey, Function.identity()));
-                DaoQueryCache.CACHE_SQL_PATTERN.put(classe.getName(), sqlPatternMap);
+                Map<String, DaoQuerySqlPattern> built = sqlPatterns.stream().collect(Collectors.toMap(DaoQuerySqlPattern::getKey, Function.identity()));
+                sqlPatternMap = DaoQueryCache.CACHE_SQL_PATTERN.putIfAbsent(classe.getName(), built);
+                if (sqlPatternMap == null) {
+                    sqlPatternMap = built;
+                }
             }
             DaoQuerySqlPattern pattern = sqlPatternMap.get(invocation.getMethod().getName());
             if (pattern == null) {
@@ -64,48 +71,37 @@ public class DaoQueryCache {
     }
 
     public static ConversionService getConverter() {
-        if (converter == null) {
-            converter = ApplicationContextProvider.getApplicationContext().getBean(ConversionService.class);
+        ConversionService local = converter;
+        if (local == null) {
+            local = ApplicationContextProvider.getApplicationContext().getBean(ConversionService.class);
+            converter = local;
         }
-        return converter;
+        return local;
     }
 
     static List<DaoQueryAccessMethod> getAccessMethods(Class<?> classe) {
-        String className = classe.getName();
-        List<DaoQueryAccessMethod> methods = CACHE_ACCESS_METHODS.get(className);
-        if (methods == null) {
-            methods = new ArrayList<>();
+        return CACHE_ACCESS_METHODS.computeIfAbsent(classe.getName(), className -> {
+            List<DaoQueryAccessMethod> methods = new ArrayList<>();
             for (Method method : classe.getDeclaredMethods()) {
                 if (method.getName().startsWith("get") || method.getName().startsWith("is")) {
                     methods.add(new DaoQueryAccessMethod(method));
                 }
             }
-            CACHE_ACCESS_METHODS.put(className, methods);
-        }
-        return methods;
+            return methods;
+        });
     }
 
     static Map<String, DaoQueryFieldInfo> getFieldInfo(Class<?> classe) {
-        String className = classe.getName();
-        Map<String, DaoQueryFieldInfo> fieldInfoMap = CACHE_FIELD_INFO.get(className);
-        if (fieldInfoMap == null) {
-            fieldInfoMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        return CACHE_FIELD_INFO.computeIfAbsent(classe.getName(), className -> {
+            Map<String, DaoQueryFieldInfo> fieldInfoMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
             List<DaoQueryAccessField> accessFields = getAccessFields(classe);
             for (DaoQueryAccessField accessField : accessFields) {
                 fieldInfoMap.put(accessField.getName(), new DaoQueryFieldInfo(accessField.getName(), accessField.getParam(), accessField.getType(), accessField.getColumn()));
             }
 
-//            List<DaoQueryAccessMethod> accessMethods = getAccessMethods(classe);
-//            for (DaoQueryAccessMethod accessMethod : accessMethods) {
-//                if (fieldInfoMap.get(accessMethod.getName()) == null) {
-//                    fieldInfoMap.put(accessMethod.getName(), new DaoQueryFieldInfo(accessMethod.getParam(), accessMethod.getType(), null));
-//                }
-//            }
-
-            CACHE_FIELD_INFO.put(className, fieldInfoMap);
-        }
-        return fieldInfoMap;
+            return fieldInfoMap;
+        });
     }
 
     private static List<DaoQueryAccessField> getAccessFields(Class<?> classe) {
@@ -118,11 +114,13 @@ public class DaoQueryCache {
     }
 
     private static String getBootApplicationPackageName() {
-        if (CACHE_ROOT_PACKAGE == null) {
+        String local = CACHE_ROOT_PACKAGE;
+        if (local == null) {
             Map<String, Object> candidates = ApplicationContextProvider.getApplicationContext().getBeansWithAnnotation(SpringBootApplication.class);
-            CACHE_ROOT_PACKAGE = candidates.values().toArray()[0].getClass().getPackageName();
+            local = candidates.values().toArray()[0].getClass().getPackageName();
+            CACHE_ROOT_PACKAGE = local;
         }
-        return CACHE_ROOT_PACKAGE;
+        return local;
     }
 
     private static class DaoQueryInfoKey {

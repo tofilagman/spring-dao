@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<database>
+    <sql id="findAll" lang="hbs" oneline="false">
+        <![CDATA[
+            SELECT id, name FROM USER
+        ]]>
+    </sql>
+    <sql id="findOneLine" lang="hbs" oneline="true">
+        <![CDATA[
+            SELECT id, name
+                FROM USER
+                WHERE id = :id
+        ]]>
+    </sql>
+    <sql id="rawText" lang="plain">
+        <![CDATA[SELECT 1]]>
+    </sql>
+</database>
