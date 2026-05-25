@@ -18,6 +18,13 @@ class DaoQueryAccessFieldTest {
         Integer paramField;
 
         String plain;
+
+        @Column(name = "isActive")
+        Boolean isActive;
+
+        Boolean isEnabled;
+
+        String isName;
     }
 
     private Field field(String name) throws NoSuchFieldException {
@@ -42,6 +49,36 @@ class DaoQueryAccessFieldTest {
         assertThat(af.getColumn()).isNotNull();
         assertThat(af.getColumn().name()).isEqualTo("snake_case");
         assertThat(af.getSqlName()).isEqualTo("snake_case");
+    }
+
+    @Test
+    void isPrefixBooleanFieldExposesStrippedAccessorName() throws NoSuchFieldException {
+        DaoQueryAccessField af = new DaoQueryAccessField(field("isActive"));
+
+        assertThat(af.getName()).isEqualTo("isActive");
+        assertThat(af.getAccessorName()).isEqualTo("Active");
+        assertThat(af.getSqlName()).isEqualTo("isActive");
+    }
+
+    @Test
+    void isPrefixBooleanWithoutColumnStillStripsAccessorName() throws NoSuchFieldException {
+        DaoQueryAccessField af = new DaoQueryAccessField(field("isEnabled"));
+
+        assertThat(af.getAccessorName()).isEqualTo("Enabled");
+    }
+
+    @Test
+    void isPrefixNonBooleanKeepsRawName() throws NoSuchFieldException {
+        DaoQueryAccessField af = new DaoQueryAccessField(field("isName"));
+
+        assertThat(af.getAccessorName()).isEqualTo("isName");
+    }
+
+    @Test
+    void plainFieldAccessorNameMatchesRawName() throws NoSuchFieldException {
+        DaoQueryAccessField af = new DaoQueryAccessField(field("plain"));
+
+        assertThat(af.getAccessorName()).isEqualTo("plain");
     }
 
     @Test

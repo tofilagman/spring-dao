@@ -97,7 +97,12 @@ public class DaoQueryCache {
 
             List<DaoQueryAccessField> accessFields = getAccessFields(classe);
             for (DaoQueryAccessField accessField : accessFields) {
-                fieldInfoMap.put(accessField.getName(), new DaoQueryFieldInfo(accessField.getName(), accessField.getParam(), accessField.getType(), accessField.getColumn()));
+                DaoQueryFieldInfo info = new DaoQueryFieldInfo(accessField.getName(), accessField.getParam(), accessField.getType(), accessField.getColumn());
+                fieldInfoMap.put(accessField.getName(), info);
+                String accessorName = accessField.getAccessorName();
+                if (!accessorName.equals(accessField.getName())) {
+                    fieldInfoMap.putIfAbsent(accessorName, info);
+                }
             }
 
             return fieldInfoMap;

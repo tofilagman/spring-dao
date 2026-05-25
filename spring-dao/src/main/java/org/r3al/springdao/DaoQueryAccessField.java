@@ -48,4 +48,17 @@ public class DaoQueryAccessField {
         else
             return this.name;
     }
+
+    // Name a JavaBean getter would expose for this field: for a Boolean field
+    // "isActive" with getter isActive(), DaoQueryAccessMethod strips "is" and
+    // produces "Active" — without this, the field lookup misses entirely.
+    public String getAccessorName() {
+        if ((this.type == Boolean.class || this.type == boolean.class)
+                && this.name.length() > 2
+                && this.name.startsWith("is")
+                && Character.isUpperCase(this.name.charAt(2))) {
+            return this.name.substring(2);
+        }
+        return this.name;
+    }
 }
